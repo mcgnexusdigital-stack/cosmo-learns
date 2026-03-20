@@ -1,0 +1,63 @@
+{
+  "name": "cosmo-learns",
+  "version": "1.0.0",
+  "description": "AI tutoring platform for kids grades 3-9",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev":           "serve hosting -p 3000",
+    "build":         "node scripts/inject-config.js --env staging",
+    "build:prod":    "node scripts/inject-config.js --env production",
+    "test":          "vitest run",
+    "test:watch":    "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:rules":    "node tests/firestore-rules.test.js",
+    "test:e2e":      "playwright test",
+    "lint":          "eslint . --ext .js,.ts,.html",
+    "lint:fix":      "eslint . --ext .js,.ts,.html --fix",
+    "typecheck":     "tsc --noEmit",
+    "prepare":       "husky install",
+    "release:patch": "npm version patch && git push --follow-tags",
+    "release:minor": "npm version minor && git push --follow-tags",
+    "release:major": "npm version major && git push --follow-tags",
+    "firebase:dev":  "firebase emulators:start",
+    "deploy:staging":"firebase use cosmo-learns-staging && firebase deploy",
+    "deploy:prod":   "firebase use cosmo-learns-prod && firebase deploy"
+  },
+  "devDependencies": {
+    "@eslint/js":                       "^9.0.0",
+    "@playwright/test":                 "^1.44.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser":        "^7.0.0",
+    "@vitest/coverage-v8":              "^1.6.0",
+    "eslint":                           "^9.0.0",
+    "eslint-plugin-html":               "^8.1.0",
+    "firebase-admin":                   "^12.0.0",
+    "husky":                            "^9.0.0",
+    "lint-staged":                      "^15.0.0",
+    "serve":                            "^14.2.0",
+    "typescript":                       "^5.4.0",
+    "vitest":                           "^1.6.0"
+  },
+  "lint-staged": {
+    "*.{js,ts}": ["eslint --fix", "git add"],
+    "hosting/*.html": ["node scripts/inject-config.js --env staging || true"]
+  },
+  "eslintConfig": {
+    "env": {
+      "browser": true,
+      "es2022": true,
+      "node": true
+    },
+    "extends": ["eslint:recommended"],
+    "rules": {
+      "no-console": "warn",
+      "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+      "no-undef": "off"
+    },
+    "ignorePatterns": ["functions/lib/", "node_modules/", ".firebase/"]
+  }
+}

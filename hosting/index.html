@@ -1,0 +1,3275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cosmo Learns — AI Tutor for Kids</title>
+<link rel="canonical" href="https://www.cosmolearns.ca">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://js.stripe.com/v3/"></script>
+<!-- Google Identity Services (One Tap + Sign-In button) -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root {
+  --sky:#5BC4FF; --sun:#FFD93D; --mint:#52DBA8; --coral:#FF7B6B;
+  --violet:#A78BFA; --dark:#1E1B4B; --mid:#4B5563;
+  --white:#FFFDF7; --card:#FFFFFF; --border:#E5EEFF;
+  --science-g:linear-gradient(135deg,#52DBA8,#0EB58A);
+  --math-g:linear-gradient(135deg,#FFD93D,#F59E0B);
+  --english-g:linear-gradient(135deg,#FF7B6B,#DC2626);
+  --social-g:linear-gradient(135deg,#A78BFA,#7C3AED);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:var(--white);min-height:100vh;overflow-x:hidden;color:var(--dark)}
+.hidden{display:none!important}
+
+/* ===== PAGES ===== */
+.page{min-height:100vh;display:flex;flex-direction:column;animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ===== BACKGROUND BLOBS ===== */
+.blob-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18}
+.blob-1{width:600px;height:600px;background:#5BC4FF;top:-200px;left:-200px;animation:blobmove 12s ease-in-out infinite}
+.blob-2{width:500px;height:500px;background:#A78BFA;bottom:-150px;right:-150px;animation:blobmove 15s ease-in-out infinite reverse}
+.blob-3{width:400px;height:400px;background:#52DBA8;top:40%;left:50%;animation:blobmove 10s ease-in-out infinite 3s}
+@keyframes blobmove{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-30px) scale(1.05)}}
+
+/* ===== LANDING PAGE ===== */
+#page-landing{background:linear-gradient(160deg,#0F0C29 0%,#1A1060 50%,#24243E 100%);color:white;position:relative}
+.land-nav{position:relative;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:20px 40px}
+.land-logo{font-family:'Fredoka One',cursive;font-size:2rem;display:flex;align-items:center;gap:8px}
+.land-logo .rocket{font-size:2.2rem;animation:rocketbob 2s ease-in-out infinite}
+@keyframes rocketbob{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-8px) rotate(5deg)}}
+.land-nav-btns{display:flex;gap:12px}
+.btn{font-family:'Nunito',sans-serif;font-weight:800;border:none;border-radius:50px;cursor:pointer;transition:all .2s}
+.btn-ghost{background:rgba(255,255,255,.12);color:white;padding:10px 22px;font-size:.9rem;backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2)}
+.btn-ghost:hover{background:rgba(255,255,255,.22)}
+.btn-primary{background:linear-gradient(135deg,#5BC4FF,#A78BFA);color:white;padding:12px 28px;font-size:1rem;box-shadow:0 8px 24px rgba(91,196,255,.35)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(91,196,255,.5)}
+.btn-google{background:white;color:#333;padding:12px 24px;font-size:.95rem;display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.15)}
+.btn-google:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.btn-google .g-icon{width:20px;height:20px;background:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="%23EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.4 30.3 0 24 0 14.7 0 6.7 5.4 2.8 13.3l7.9 6.1C12.5 13.1 17.8 9.5 24 9.5z"/><path fill="%234285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="%2334A853" d="M10.7 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6L2.4 13.3A23.9 23.9 0 0 0 0 24c0 3.8.9 7.5 2.4 10.7l8.3-6.1z"/><path fill="%23FBBC05" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.2 0-11.5-4.2-13.3-9.9l-8.3 6.1C6.8 42.7 14.7 48 24 48z"/></svg>') center/contain no-repeat}
+.hero{position:relative;z-index:5;text-align:center;padding:60px 40px 40px}
+.hero h1{font-family:'Fredoka One',cursive;font-size:clamp(3rem,8vw,6rem);line-height:1;margin-bottom:20px;background:linear-gradient(135deg,#FFFFFF 30%,#5BC4FF 70%,#A78BFA 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:1.2rem;color:rgba(255,255,255,.75);max-width:560px;margin:0 auto 40px;line-height:1.7;font-weight:600}
+.hero-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.cosmo-hero{font-size:120px;animation:float 4s ease-in-out infinite;display:block;margin:30px auto 0;filter:drop-shadow(0 20px 40px rgba(91,196,255,.4))}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;padding:40px;position:relative;z-index:5;max-width:1000px;margin:0 auto}
+.feat-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:28px 20px;text-align:center;backdrop-filter:blur(8px);transition:transform .3s}
+.feat-card:hover{transform:translateY(-6px)}
+.feat-icon{font-size:2.8rem;margin-bottom:12px;display:block}
+.feat-card h3{font-family:'Fredoka One',cursive;font-size:1.1rem;margin-bottom:8px;color:white}
+.feat-card p{font-size:.85rem;color:rgba(255,255,255,.6);line-height:1.6}
+.stars-strip{display:flex;justify-content:center;gap:4px;font-size:1.8rem;padding:20px;position:relative;z-index:5}
+
+/* ===== AUTH MODAL ===== */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,12,41,.7);backdrop-filter:blur(6px);z-index:1000;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease}
+.modal{background:white;border-radius:32px;padding:40px;width:min(460px,94vw);position:relative;box-shadow:0 32px 80px rgba(0,0,0,.25)}
+.modal-close{position:absolute;top:16px;right:20px;background:none;border:none;font-size:1.6rem;cursor:pointer;color:#aaa;line-height:1}
+.modal-close:hover{color:var(--dark)}
+.modal h2{font-family:'Fredoka One',cursive;font-size:1.8rem;color:var(--dark);margin-bottom:4px}
+.modal p.sub{color:#888;font-size:.9rem;margin-bottom:24px;font-weight:600}
+.tabs{display:flex;background:#F3F4FF;border-radius:16px;padding:4px;margin-bottom:24px}
+.tab-btn{flex:1;border:none;background:none;border-radius:12px;padding:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:.9rem;cursor:pointer;color:#888;transition:all .2s}
+.tab-btn.active{background:white;color:var(--dark);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-weight:800;font-size:.85rem;color:var(--dark);margin-bottom:6px}
+.form-group input,.form-group select{width:100%;border:2px solid var(--border);border-radius:14px;padding:12px 16px;font-family:'Nunito',sans-serif;font-weight:600;font-size:.95rem;color:var(--dark);outline:none;transition:border-color .2s}
+.form-group input:focus,.form-group select:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(91,196,255,.15)}
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:#aaa;font-size:.85rem;font-weight:700}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:#E5E7EB}
+.btn-full{width:100%;padding:14px;font-size:1rem;border-radius:16px;margin-bottom:10px}
+.role-toggle{display:flex;gap:12px;margin-bottom:20px}
+.role-card{flex:1;border:2px solid var(--border);border-radius:16px;padding:14px;text-align:center;cursor:pointer;transition:all .2s}
+.role-card.active{border-color:var(--sky);background:#F0FAFF}
+.role-card .role-icon{font-size:2rem;display:block;margin-bottom:6px}
+.role-card .role-label{font-weight:800;font-size:.85rem;color:var(--mid)}
+.error-msg{background:#FEF2F2;border:1px solid #FECACA;color:#DC2626;border-radius:12px;padding:10px 14px;font-size:.85rem;font-weight:700;margin-bottom:14px}
+
+/* ===== DASHBOARD SHARED ===== */
+.app-shell{min-height:100vh;background:var(--white)}
+.topbar{background:white;border-bottom:2px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(91,196,255,.08)}
+.topbar-logo{font-family:'Fredoka One',cursive;font-size:1.5rem;color:var(--dark);display:flex;align-items:center;gap:6px}
+.user-pill{display:flex;align-items:center;gap:10px;background:#F3F4FF;border-radius:50px;padding:6px 16px 6px 6px;cursor:pointer;transition:background .2s}
+.user-pill:hover{background:#E8ECFF}
+.user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--sky),var(--violet));display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:900;color:white}
+.user-name{font-weight:800;font-size:.9rem;color:var(--dark)}
+.user-menu{position:absolute;top:60px;right:20px;background:white;border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,.12);border:2px solid var(--border);overflow:hidden;z-index:100;min-width:180px}
+.user-menu a{display:block;padding:12px 18px;font-weight:700;font-size:.9rem;color:var(--dark);cursor:pointer;transition:background .15s}
+.user-menu a:hover{background:#F3F4FF}
+.user-menu a.danger{color:#DC2626}
+
+/* ===== KID DASHBOARD ===== */
+#page-kid-dash{background:linear-gradient(160deg,#EFF8FF 0%,#F5F0FF 100%)}
+.kid-main{max-width:1200px;margin:0 auto;padding:24px}
+.welcome-banner{background:linear-gradient(135deg,#5BC4FF,#A78BFA);border-radius:28px;padding:28px 32px;color:white;display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;box-shadow:0 8px 32px rgba(91,196,255,.3)}
+.welcome-left h2{font-family:'Fredoka One',cursive;font-size:2rem;margin-bottom:4px}
+.welcome-left p{opacity:.85;font-weight:600;font-size:.95rem}
+.welcome-cosmo{font-size:70px;animation:float 3s ease-in-out infinite}
+.progress-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.prog-card{background:white;border-radius:22px;padding:20px;text-align:center;box-shadow:0 4px 16px rgba(91,196,255,.08);border:2px solid var(--border);transition:transform .2s}
+.prog-card:hover{transform:translateY(-4px)}
+.prog-card .subj-icon{font-size:2.2rem;margin-bottom:8px;display:block}
+.prog-card h4{font-family:'Fredoka One',cursive;font-size:1rem;margin-bottom:6px}
+.prog-bar-bg{height:10px;background:#F0F4FF;border-radius:10px;overflow:hidden;margin-bottom:6px}
+.prog-bar-fill{height:100%;border-radius:10px;transition:width 1s ease}
+.prog-card .stars{font-size:.85rem;color:#F59E0B;font-weight:800}
+.section-title{font-family:'Fredoka One',cursive;font-size:1.4rem;color:var(--dark);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.subject-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:28px}
+.subj-card{border-radius:24px;padding:24px;color:white;cursor:pointer;transition:transform .2s,box-shadow .2s;box-shadow:0 6px 20px rgba(0,0,0,.1);position:relative;overflow:hidden}
+.subj-card:hover{transform:translateY(-6px);box-shadow:0 14px 32px rgba(0,0,0,.15)}
+.subj-card .subj-bg-icon{position:absolute;right:-10px;bottom:-10px;font-size:80px;opacity:.15}
+.subj-card h3{font-family:'Fredoka One',cursive;font-size:1.4rem;margin-bottom:4px}
+.subj-card p{font-size:.85rem;opacity:.85;font-weight:600;margin-bottom:12px}
+.subj-card .subj-btn{display:inline-block;background:rgba(255,255,255,.25);border:2px solid rgba(255,255,255,.4);border-radius:20px;padding:7px 18px;font-weight:800;font-size:.85rem;cursor:pointer;transition:background .2s}
+.subj-card .subj-btn:hover{background:rgba(255,255,255,.4)}
+.recent-box{background:white;border-radius:22px;padding:24px;box-shadow:0 4px 16px rgba(91,196,255,.08);border:2px solid var(--border);margin-bottom:28px}
+.recent-item{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border)}
+.recent-item:last-child{border-bottom:none}
+.recent-icon{width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+.recent-info h5{font-weight:800;font-size:.9rem;color:var(--dark)}
+.recent-info p{font-size:.78rem;color:#888;font-weight:600}
+.recent-stars{margin-left:auto;color:#F59E0B;font-weight:800;font-size:.9rem}
+.achievements-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px}
+.badge{background:white;border-radius:18px;padding:14px 18px;display:flex;align-items:center;gap:10px;box-shadow:0 3px 12px rgba(0,0,0,.06);border:2px solid var(--border);transition:transform .2s}
+.badge:hover{transform:scale(1.04)}
+.badge .badge-icon{font-size:1.8rem}
+.badge .badge-info h5{font-weight:800;font-size:.85rem;color:var(--dark)}
+.badge .badge-info p{font-size:.72rem;color:#888;font-weight:600}
+.badge.locked{opacity:.4;filter:grayscale(1)}
+
+/* ===== TUTOR PAGE ===== */
+#page-tutor{background:linear-gradient(160deg,#EFF8FF 0%,#F5F0FF 100%)}
+.tutor-wrap{max-width:1200px;margin:0 auto;padding:20px;display:grid;grid-template-columns:280px 1fr;gap:20px;height:calc(100vh - 72px)}
+.cosmo-side{background:white;border-radius:28px;border:2px solid var(--border);box-shadow:0 6px 24px rgba(91,196,255,.08);padding:20px;display:flex;flex-direction:column;align-items:center;gap:14px;overflow-y:auto}
+.cosmo-avatar{width:130px;height:130px;border-radius:50%;background:linear-gradient(135deg,var(--sky),var(--violet));display:flex;align-items:center;justify-content:center;font-size:72px;box-shadow:0 8px 28px rgba(91,196,255,.3);animation:float 3s ease-in-out infinite;cursor:pointer;transition:transform .1s;user-select:none}
+.cosmo-avatar:active{transform:scale(.93)}
+.cosmo-avatar.bounce-anim{animation:cbounce .5s ease 3}
+@keyframes cbounce{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+.cosmo-name-lbl{font-family:'Fredoka One',cursive;font-size:1.4rem}
+.cosmo-status{background:#F0FAFF;border-radius:20px;padding:5px 14px;font-size:.82rem;font-weight:700;color:#5B9BD5;text-align:center;transition:all .3s}
+.subj-badge-pill{border-radius:50px;padding:7px 18px;font-family:'Fredoka One',cursive;font-size:.95rem;color:white;box-shadow:0 3px 0 rgba(0,0,0,.12);transition:all .3s}
+.grade-pick{width:100%;border:2px solid var(--border);border-radius:14px;padding:10px 14px;font-family:'Nunito',sans-serif;font-weight:700;font-size:.9rem;color:var(--dark);background:white;cursor:pointer;outline:none;transition:border-color .2s}
+.grade-pick:focus{border-color:var(--sky)}
+.cosmo-stat-box{width:100%;background:#F8F4FF;border-radius:16px;padding:14px;text-align:center}
+.cosmo-stat-box .stat-lbl{font-size:.72rem;text-transform:uppercase;color:#888;font-weight:800;letter-spacing:.5px;margin-bottom:4px}
+.cosmo-stars{font-size:1.3rem;letter-spacing:2px}
+.tip-box{width:100%;background:linear-gradient(135deg,#FFFBE6,#FFF3CD);border-radius:16px;padding:12px;border-left:4px solid var(--sun);font-size:.8rem;font-weight:700;color:#7A6000;line-height:1.6}
+.tip-box strong{display:block;margin-bottom:3px;font-size:.82rem}
+.subj-mini-tabs{width:100%;display:flex;flex-direction:column;gap:6px}
+.subj-mini-btn{width:100%;border:2px solid var(--border);background:white;border-radius:14px;padding:10px 14px;font-family:'Nunito',sans-serif;font-weight:800;font-size:.88rem;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .2s;color:var(--dark)}
+.subj-mini-btn.active{border-color:transparent;color:white;box-shadow:0 4px 0 rgba(0,0,0,.12)}
+.subj-mini-btn:hover{transform:translateX(4px)}
+.chat-col{display:flex;flex-direction:column;background:white;border-radius:28px;border:2px solid var(--border);box-shadow:0 6px 24px rgba(91,196,255,.08);overflow:hidden}
+.chat-top{padding:14px 20px;border-bottom:2px dashed var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.chat-top h3{font-family:'Fredoka One',cursive;font-size:1.1rem}
+.chat-top-right{display:flex;gap:8px}
+.icon-btn{width:36px;height:36px;border-radius:12px;border:2px solid var(--border);background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:all .2s}
+.icon-btn:hover{background:#F0FAFF;border-color:var(--sky)}
+.icon-btn.active{background:var(--sky);border-color:var(--sky);color:white}
+.msgs-area{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
+.msgs-area::-webkit-scrollbar{width:5px}
+.msgs-area::-webkit-scrollbar-track{background:#F0FAFF;border-radius:10px}
+.msgs-area::-webkit-scrollbar-thumb{background:#C5E4FF;border-radius:10px}
+.msg{display:flex;gap:10px;align-items:flex-end;animation:msgIn .3s ease-out}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.msg.user-msg{flex-direction:row-reverse}
+.msg-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;background:linear-gradient(135deg,var(--sky),var(--violet));box-shadow:0 3px 8px rgba(91,196,255,.25)}
+.msg.user-msg .msg-av{background:linear-gradient(135deg,var(--sun),#F59E0B)}
+.msg-bub{max-width:75%;background:#F0FAFF;border:2px solid #E0F2FF;border-radius:20px 20px 20px 4px;padding:12px 16px;font-size:.93rem;line-height:1.65;color:var(--dark)}
+.msg.user-msg .msg-bub{background:linear-gradient(135deg,var(--sky),#4BB8F8);border-color:transparent;color:white;border-radius:20px 20px 4px 20px}
+.msg-bub .stag{display:inline-block;font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;border-radius:20px;padding:2px 8px;margin-bottom:6px;color:white}
+.suggestions-bar{padding:10px 18px;display:flex;gap:8px;flex-wrap:wrap;border-top:2px dashed var(--border);flex-shrink:0}
+.sugg-chip{background:#F0FAFF;border:2px solid #C5E4FF;border-radius:20px;padding:6px 13px;font-family:'Nunito',sans-serif;font-weight:700;font-size:.78rem;color:#5B9BD5;cursor:pointer;transition:all .2s;white-space:nowrap}
+.sugg-chip:hover{background:var(--sky);color:white;border-color:var(--sky);transform:translateY(-2px)}
+.input-row{padding:14px 18px;display:flex;gap:10px;align-items:flex-end;background:#F8FBFF;border-top:2px solid var(--border);flex-shrink:0}
+.chat-input{flex:1;border:2px solid #C5E4FF;border-radius:18px;padding:10px 16px;font-family:'Nunito',sans-serif;font-weight:600;font-size:.93rem;resize:none;outline:none;color:var(--dark);background:white;transition:border-color .2s;max-height:100px;line-height:1.5}
+.chat-input:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(91,196,255,.15)}
+.chat-input::placeholder{color:#B0CCE0}
+.send-btn{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--sky),var(--violet));border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.25rem;box-shadow:0 4px 12px rgba(91,196,255,.35);transition:all .2s;flex-shrink:0}
+.send-btn:hover{transform:scale(1.08)}
+.send-btn:disabled{opacity:.4;cursor:not-allowed}
+.typing-bub{display:flex;align-items:center;gap:5px;padding:8px 14px}
+.typing-bub span{width:7px;height:7px;border-radius:50%;background:var(--violet);animation:tdot 1.2s ease-in-out infinite}
+.typing-bub span:nth-child(2){animation-delay:.2s}
+.typing-bub span:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-6px);opacity:1}}
+
+/* ===== QUIZ PANEL ===== */
+.quiz-panel{padding:20px;display:flex;flex-direction:column;gap:16px;height:100%;overflow-y:auto}
+.quiz-header{text-align:center;padding:10px 0}
+.quiz-header h3{font-family:'Fredoka One',cursive;font-size:1.3rem;color:var(--dark)}
+.quiz-header p{font-size:.85rem;color:#888;font-weight:600;margin-top:4px}
+.quiz-progress{background:#F0F4FF;border-radius:10px;height:10px;overflow:hidden}
+.quiz-progress-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--sky),var(--violet));transition:width .5s ease}
+.quiz-card{background:white;border:2px solid var(--border);border-radius:24px;padding:24px;box-shadow:0 4px 16px rgba(91,196,255,.07)}
+.quiz-q-text{font-weight:800;font-size:1rem;color:var(--dark);line-height:1.6;margin-bottom:20px}
+.quiz-options{display:flex;flex-direction:column;gap:10px}
+.quiz-opt{border:2px solid var(--border);border-radius:16px;padding:12px 16px;font-family:'Nunito',sans-serif;font-weight:700;font-size:.9rem;cursor:pointer;transition:all .2s;background:white;color:var(--dark);text-align:left;display:flex;align-items:center;gap:10px}
+.quiz-opt:hover:not(:disabled){border-color:var(--sky);background:#F0FAFF;transform:translateX(4px)}
+.quiz-opt.correct{border-color:#52DBA8;background:#F0FFF8;color:#0E8A5E}
+.quiz-opt.wrong{border-color:#FF7B6B;background:#FFF0EE;color:#C0392B}
+.quiz-opt:disabled{cursor:default}
+.quiz-opt-letter{width:28px;height:28px;border-radius:50%;background:#F0F4FF;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.8rem;flex-shrink:0}
+.quiz-opt.correct .quiz-opt-letter{background:#52DBA8;color:white}
+.quiz-opt.wrong .quiz-opt-letter{background:#FF7B6B;color:white}
+.quiz-feedback{border-radius:16px;padding:14px 18px;font-weight:700;font-size:.9rem;line-height:1.6}
+.quiz-feedback.good{background:#F0FFF8;border:2px solid #52DBA8;color:#0E8A5E}
+.quiz-feedback.bad{background:#FFF0EE;border:2px solid #FF7B6B;color:#C0392B}
+.quiz-next-btn{background:linear-gradient(135deg,var(--sky),var(--violet));color:white;border:none;border-radius:16px;padding:13px 28px;font-family:'Fredoka One',cursive;font-size:1rem;cursor:pointer;transition:all .2s;box-shadow:0 4px 12px rgba(91,196,255,.3)}
+.quiz-next-btn:hover{transform:translateY(-2px)}
+.quiz-result{text-align:center;padding:20px}
+.quiz-result .big-score{font-family:'Fredoka One',cursive;font-size:4rem;color:var(--violet)}
+.quiz-result h3{font-family:'Fredoka One',cursive;font-size:1.5rem;margin:8px 0}
+.quiz-result p{color:#888;font-weight:600;margin-bottom:20px}
+.quiz-gen-btn{background:linear-gradient(135deg,var(--mint),#0EB58A);color:white;border:none;border-radius:16px;padding:13px 28px;font-family:'Fredoka One',cursive;font-size:1rem;cursor:pointer;box-shadow:0 4px 12px rgba(82,219,168,.3);transition:all .2s}
+.quiz-gen-btn:hover{transform:translateY(-2px)}
+.quiz-loading{display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 20px}
+.quiz-loading .spinner{width:50px;height:50px;border:4px solid #F0F4FF;border-top:4px solid var(--violet);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== PARENT DASHBOARD ===== */
+#page-parent-dash{background:#F8FAFF}
+.parent-main{max-width:1200px;margin:0 auto;padding:24px}
+.parent-header{background:linear-gradient(135deg,#1E1B4B,#3730A3);border-radius:28px;padding:28px 32px;color:white;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 8px 32px rgba(55,48,163,.3)}
+.parent-header h2{font-family:'Fredoka One',cursive;font-size:1.8rem;margin-bottom:4px}
+.parent-header p{opacity:.75;font-weight:600;font-size:.9rem}
+.parent-header .ph-icon{font-size:60px;opacity:.85}
+.kids-section{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;margin-bottom:28px}
+.kid-profile-card{background:white;border-radius:24px;border:2px solid var(--border);box-shadow:0 4px 16px rgba(0,0,0,.05);overflow:hidden;transition:transform .2s}
+.kid-profile-card:hover{transform:translateY(-4px)}
+.kpc-top{padding:20px 20px 14px;display:flex;align-items:center;gap:14px;border-bottom:2px dashed var(--border)}
+.kid-av{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:900;color:white;flex-shrink:0}
+.kid-meta h4{font-family:'Fredoka One',cursive;font-size:1.15rem;color:var(--dark)}
+.kid-meta p{font-size:.8rem;color:#888;font-weight:600}
+.kpc-stats{padding:14px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpc-stat{text-align:center}
+.kpc-stat .stat-val{font-family:'Fredoka One',cursive;font-size:1.4rem;color:var(--dark)}
+.kpc-stat .stat-key{font-size:.72rem;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.kpc-subjs{padding:0 20px 16px;display:flex;gap:6px;flex-wrap:wrap}
+.kpc-subj-tag{border-radius:20px;padding:4px 12px;font-size:.78rem;font-weight:800;color:white}
+.kpc-actions{padding:14px 20px;border-top:2px dashed var(--border);display:flex;gap:10px}
+.btn-sm{border:none;border-radius:12px;padding:8px 16px;font-family:'Nunito',sans-serif;font-weight:800;font-size:.82rem;cursor:pointer;transition:all .2s}
+.btn-outline-sm{background:white;border:2px solid var(--border);color:var(--dark);border-radius:12px;padding:7px 15px;font-family:'Nunito',sans-serif;font-weight:800;font-size:.82rem;cursor:pointer;transition:all .2s}
+.btn-outline-sm:hover{border-color:var(--sky);color:var(--sky)}
+.add-kid-card{background:white;border-radius:24px;border:3px dashed #CBD5E1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px;cursor:pointer;transition:all .2s;gap:10px}
+.add-kid-card:hover{border-color:var(--sky);background:#F0FAFF}
+.add-kid-card .plus-icon{width:50px;height:50px;border-radius:50%;background:#F0F4FF;display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:var(--sky)}
+.add-kid-card p{font-weight:800;color:#94A3B8;font-size:.9rem}
+.review-section{background:white;border-radius:24px;border:2px solid var(--border);box-shadow:0 4px 16px rgba(0,0,0,.05);margin-bottom:28px}
+.review-header{padding:20px 24px;border-bottom:2px dashed var(--border);display:flex;align-items:center;justify-content:space-between}
+.review-header h3{font-family:'Fredoka One',cursive;font-size:1.25rem;color:var(--dark)}
+.conv-list{padding:0 24px}
+.conv-item{padding:16px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:14px}
+.conv-item:last-child{border-bottom:none}
+.conv-subj-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+.conv-info{flex:1}
+.conv-info h5{font-weight:800;font-size:.9rem;color:var(--dark);margin-bottom:3px}
+.conv-info p{font-size:.8rem;color:#888;font-weight:600;line-height:1.5}
+.conv-meta{text-align:right;flex-shrink:0}
+.conv-meta .time{font-size:.75rem;color:#aaa;font-weight:600}
+.conv-meta .score-badge{margin-top:4px;display:inline-block;background:#F0FFF8;border:1px solid #52DBA8;color:#0E8A5E;border-radius:20px;padding:3px 10px;font-size:.75rem;font-weight:800}
+.alerts-box{background:linear-gradient(135deg,#FFFBE6,#FFF3CD);border-radius:24px;border:2px solid #FFD93D;padding:20px 24px;margin-bottom:28px}
+.alerts-box h3{font-family:'Fredoka One',cursive;font-size:1.1rem;color:#7A5700;margin-bottom:14px}
+.alert-item{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(255,200,0,.25)}
+.alert-item:last-child{border-bottom:none}
+.alert-item .ai{font-size:1.4rem;flex-shrink:0}
+.alert-item p{font-size:.85rem;font-weight:700;color:#7A5700;line-height:1.5}
+.settings-row{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.settings-card{background:white;border-radius:24px;border:2px solid var(--border);padding:22px;box-shadow:0 3px 12px rgba(0,0,0,.04)}
+.settings-card h4{font-family:'Fredoka One',cursive;font-size:1.1rem;color:var(--dark);margin-bottom:16px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-weight:700;font-size:.9rem;color:var(--dark)}
+.toggle-row:last-child{border-bottom:none}
+.toggle{width:44px;height:24px;background:#E5E7EB;border-radius:20px;cursor:pointer;position:relative;transition:background .3s;flex-shrink:0}
+.toggle.on{background:var(--mint)}
+.toggle::after{content:'';width:18px;height:18px;background:white;border-radius:50%;position:absolute;top:3px;left:3px;transition:transform .3s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.toggle.on::after{transform:translateX(20px)}
+
+/* ===== ADD KID MODAL ===== */
+.modal-cosmo-row{text-align:center;font-size:3rem;margin-bottom:8px}
+.avatar-picker{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.av-opt{width:44px;height:44px;border-radius:50%;border:3px solid transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.3rem;transition:all .2s}
+.av-opt.selected{border-color:var(--sky);transform:scale(1.15)}
+
+/* ===== CONFETTI ===== */
+.confetti-el{position:fixed;pointer-events:none;z-index:9999;font-size:2rem;animation:cfall 1.8s ease-out forwards}
+@keyframes cfall{0%{opacity:1;transform:translate(0,0) scale(.5) rotate(0deg)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1.2) rotate(var(--rot))}}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:900px){
+  .tutor-wrap{grid-template-columns:1fr;height:auto}
+  .cosmo-side{flex-direction:row;flex-wrap:wrap;justify-content:center}
+  .progress-row{grid-template-columns:repeat(2,1fr)}
+  .settings-row{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .subject-grid{grid-template-columns:1fr}
+  .progress-row{grid-template-columns:1fr 1fr}
+  .welcome-cosmo{font-size:50px}
+  .hero h1{font-size:2.8rem}
+}
+
+/* ===== PRICING SECTION ===== */
+.pricing-section{position:relative;z-index:5;padding:60px 24px 80px;max-width:1100px;margin:0 auto}
+.pricing-eyebrow{text-align:center;font-size:.8rem;font-weight:900;text-transform:uppercase;letter-spacing:3px;color:var(--sun);margin-bottom:12px}
+.pricing-title{font-family:'Fredoka One',cursive;font-size:clamp(2rem,5vw,3.2rem);text-align:center;color:white;margin-bottom:10px;line-height:1.1}
+.pricing-sub{text-align:center;color:rgba(255,255,255,.6);font-size:1rem;font-weight:600;margin-bottom:40px}
+
+/* billing toggle */
+.billing-toggle{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:48px}
+.billing-label{font-weight:800;font-size:.9rem;color:rgba(255,255,255,.55);transition:color .2s}
+.billing-label.active{color:white}
+.toggle-track{width:56px;height:30px;background:rgba(255,255,255,.15);border-radius:30px;cursor:pointer;position:relative;transition:background .3s;border:2px solid rgba(255,255,255,.2);flex-shrink:0}
+.toggle-track.annual{background:linear-gradient(135deg,var(--sky),var(--violet))}
+.toggle-knob{width:22px;height:22px;background:white;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .3s;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.toggle-track.annual .toggle-knob{transform:translateX(26px)}
+.save-badge{background:linear-gradient(135deg,var(--mint),#0EB58A);color:white;border-radius:20px;padding:4px 12px;font-size:.72rem;font-weight:900;letter-spacing:.5px;animation:savepop .4s ease}
+@keyframes savepop{from{transform:scale(0.7);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* cards grid */
+.plans-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:stretch}
+.plan-card{border-radius:28px;padding:32px 28px;position:relative;overflow:hidden;transition:transform .25s,box-shadow .25s;display:flex;flex-direction:column}
+.plan-card:hover{transform:translateY(-8px)}
+.plan-card.free{background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.12);color:white}
+.plan-card.basic{background:rgba(255,255,255,.09);border:2px solid rgba(255,255,255,.15);color:white}
+.plan-card.family{background:white;color:var(--dark);box-shadow:0 24px 64px rgba(91,196,255,.35);border:3px solid transparent}
+.plan-card.pro{background:linear-gradient(160deg,#1E1B4B,#2D2080);border:2px solid rgba(167,139,250,.4);color:white}
+
+/* popular ribbon */
+.popular-ribbon{position:absolute;top:20px;right:-30px;background:linear-gradient(135deg,var(--sun),#F59E0B);color:#1E1B4B;font-size:.7rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;padding:6px 40px;transform:rotate(35deg);box-shadow:0 4px 12px rgba(0,0,0,.2)}
+
+/* plan header */
+.plan-icon{font-size:2.4rem;margin-bottom:12px;display:block}
+.plan-name{font-family:'Fredoka One',cursive;font-size:1.4rem;margin-bottom:4px}
+.plan-tagline{font-size:.82rem;font-weight:600;opacity:.65;margin-bottom:24px;line-height:1.5}
+.plan-card.family .plan-tagline{color:var(--mid)}
+
+/* price display */
+.plan-price-row{display:flex;align-items:flex-end;gap:4px;margin-bottom:6px}
+.plan-price{font-family:'Fredoka One',cursive;font-size:3rem;line-height:1}
+.plan-price-unit{font-size:.85rem;font-weight:700;opacity:.6;padding-bottom:6px}
+.plan-card.family .plan-price-unit{color:var(--mid)}
+.plan-original{font-size:.82rem;font-weight:700;opacity:.45;text-decoration:line-through;margin-bottom:2px;min-height:1.2em}
+.plan-billed{font-size:.78rem;font-weight:700;opacity:.5;margin-bottom:28px;min-height:1.1em}
+.plan-card.family .plan-billed{color:var(--mid)}
+
+/* features list */
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:28px;flex:1}
+.plan-features li{display:flex;align-items:flex-start;gap:10px;font-size:.88rem;font-weight:700;line-height:1.45}
+.plan-features li .fi{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;flex-shrink:0;margin-top:1px}
+.plan-card.free .fi,.plan-card.basic .fi,.plan-card.pro .fi{background:rgba(255,255,255,.15)}
+.plan-card.family .fi{background:#E8FFF5;color:#0EB58A}
+.fi.no{background:rgba(255,255,255,.07)!important;opacity:.4}
+.plan-features li.dim{opacity:.4}
+
+/* CTA buttons */
+.plan-cta{width:100%;border:none;border-radius:16px;padding:14px;font-family:'Fredoka One',cursive;font-size:1rem;cursor:pointer;transition:all .2s;box-shadow:0 4px 0 rgba(0,0,0,.15)}
+.plan-cta:hover{transform:translateY(-2px);box-shadow:0 6px 0 rgba(0,0,0,.15)}
+.plan-cta:active{transform:translateY(1px);box-shadow:0 2px 0 rgba(0,0,0,.1)}
+.cta-free{background:rgba(255,255,255,.15);color:white;border:2px solid rgba(255,255,255,.25)}
+.cta-free:hover{background:rgba(255,255,255,.25)}
+.cta-solo{background:linear-gradient(135deg,#52DBA8,#0EB58A);color:white}
+.cta-basic{background:linear-gradient(135deg,var(--sky),#4BAEE8);color:white}
+.cta-family{background:linear-gradient(135deg,var(--sky),var(--violet));color:white;box-shadow:0 8px 24px rgba(91,196,255,.4)!important}
+.cta-family:hover{box-shadow:0 12px 32px rgba(91,196,255,.55)!important}
+.cta-pro{background:linear-gradient(135deg,var(--violet),#6D28D9);color:white}
+
+/* comparison note */
+.pricing-note{text-align:center;color:rgba(255,255,255,.35);font-size:.8rem;font-weight:700;margin-top:32px}
+.pricing-note span{color:rgba(255,255,255,.6)}
+
+/* comparison table */
+.compare-wrap{max-width:860px;margin:60px auto 0;padding:0 24px}
+.compare-title{font-family:'Fredoka One',cursive;font-size:1.6rem;color:white;text-align:center;margin-bottom:28px}
+.compare-table{width:100%;border-collapse:collapse;background:rgba(255,255,255,.05);border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,.1)}
+.compare-table th{padding:14px 18px;font-family:'Fredoka One',cursive;font-size:.95rem;background:rgba(255,255,255,.07);color:rgba(255,255,255,.9);text-align:center;border-bottom:1px solid rgba(255,255,255,.1)}
+.compare-table th:first-child{text-align:left}
+.compare-table td{padding:12px 18px;font-size:.85rem;font-weight:700;color:rgba(255,255,255,.7);text-align:center;border-bottom:1px solid rgba(255,255,255,.06)}
+.compare-table td:first-child{text-align:left;color:rgba(255,255,255,.85)}
+.compare-table tr:last-child td{border-bottom:none}
+.compare-table tr:hover td{background:rgba(255,255,255,.04)}
+.compare-table .hl-col{background:rgba(91,196,255,.08)}
+.check{color:var(--mint);font-size:1.1rem}
+.cross{color:rgba(255,255,255,.2);font-size:1rem}
+.partial{color:var(--sun);font-size:.82rem;font-weight:800}
+
+/* FAQ strip */
+.faq-strip{max-width:760px;margin:60px auto 20px;padding:0 24px}
+.faq-title{font-family:'Fredoka One',cursive;font-size:1.6rem;color:white;text-align:center;margin-bottom:28px}
+.faq-item{border-bottom:1px solid rgba(255,255,255,.1);padding:18px 0;cursor:pointer}
+.faq-item:last-child{border-bottom:none}
+.faq-q{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:.95rem;color:white;gap:16px}
+.faq-chevron{font-size:1.1rem;transition:transform .25s;flex-shrink:0;color:rgba(255,255,255,.4)}
+.faq-item.open .faq-chevron{transform:rotate(180deg)}
+.faq-a{font-size:.88rem;color:rgba(255,255,255,.6);font-weight:600;line-height:1.7;max-height:0;overflow:hidden;transition:max-height .35s ease,padding .25s ease}
+.faq-item.open .faq-a{max-height:200px;padding-top:10px}
+
+/* upgrade prompt inside app */
+.upgrade-banner{background:linear-gradient(135deg,#1E1B4B,#3730A3);border-radius:20px;padding:20px 24px;margin:16px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid rgba(167,139,250,.3)}
+.upgrade-banner .ub-text h4{font-family:'Fredoka One',cursive;font-size:1rem;color:white;margin-bottom:3px}
+.upgrade-banner .ub-text p{font-size:.8rem;color:rgba(255,255,255,.6);font-weight:600}
+.upgrade-banner .ub-btn{background:linear-gradient(135deg,var(--sky),var(--violet));color:white;border:none;border-radius:12px;padding:10px 18px;font-family:'Fredoka One',cursive;font-size:.9rem;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0}
+.upgrade-banner .ub-btn:hover{transform:scale(1.05)}
+
+@media(max-width:840px){
+  .plans-grid{grid-template-columns:1fr;max-width:400px;margin:0 auto}
+  .compare-table{font-size:.78rem}
+}
+
+/* ===== STRIPE PAYMENT MODAL ===== */
+.payment-modal{background:white;border-radius:32px;padding:36px;width:min(500px,96vw);position:relative;box-shadow:0 32px 80px rgba(0,0,0,.28)}
+.payment-modal .plan-summary{background:linear-gradient(135deg,#F0F4FF,#F8F0FF);border-radius:18px;padding:18px 20px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between}
+.payment-modal .plan-summary .ps-left h4{font-family:'Fredoka One',cursive;font-size:1.1rem;color:var(--dark)}
+.payment-modal .plan-summary .ps-left p{font-size:.82rem;color:#888;font-weight:600;margin-top:2px}
+.payment-modal .plan-summary .ps-price{font-family:'Fredoka One',cursive;font-size:1.6rem;color:var(--dark)}
+.payment-modal .plan-summary .ps-price span{font-size:.85rem;font-weight:700;color:#888}
+.stripe-field-wrap{margin-bottom:16px}
+.stripe-field-wrap label{display:block;font-weight:800;font-size:.82rem;color:var(--dark);margin-bottom:7px}
+.stripe-field-wrap input{width:100%;border:2px solid var(--border);border-radius:13px;padding:12px 15px;font-family:'Nunito',sans-serif;font-weight:600;font-size:.93rem;color:var(--dark);outline:none;transition:border-color .2s}
+.stripe-field-wrap input:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(91,196,255,.15)}
+.stripe-card-element{border:2px solid var(--border);border-radius:13px;padding:13px 15px;transition:border-color .2s;background:white}
+.stripe-card-element.StripeElement--focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(91,196,255,.15)}
+.stripe-card-element.StripeElement--invalid{border-color:#FF7B6B}
+.stripe-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pay-btn{width:100%;border:none;border-radius:16px;padding:15px;font-family:'Fredoka One',cursive;font-size:1.05rem;cursor:pointer;background:linear-gradient(135deg,var(--sky),var(--violet));color:white;box-shadow:0 6px 20px rgba(91,196,255,.35);transition:all .2s;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:10px}
+.pay-btn:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(91,196,255,.45)}
+.pay-btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.pay-btn .spinner-sm{width:18px;height:18px;border:3px solid rgba(255,255,255,.4);border-top-color:white;border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.stripe-secure-note{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:.75rem;font-weight:700;color:#aaa}
+.stripe-secure-note .lock{font-size:.9rem}
+.payment-error{background:#FEF2F2;border:1px solid #FECACA;color:#DC2626;border-radius:12px;padding:10px 14px;font-size:.83rem;font-weight:700;margin-bottom:14px}
+.payment-success-screen{text-align:center;padding:20px 0}
+.payment-success-screen .success-icon{font-size:4rem;margin-bottom:12px;animation:pop .5s ease}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+.payment-success-screen h3{font-family:'Fredoka One',cursive;font-size:1.6rem;color:var(--dark);margin-bottom:8px}
+.payment-success-screen p{color:#888;font-weight:600;font-size:.9rem;line-height:1.6;margin-bottom:20px}
+.plan-pill{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--sky),var(--violet));color:white;border-radius:20px;padding:5px 14px;font-weight:800;font-size:.82rem;margin-bottom:16px}
+.billing-cycle-tabs{display:flex;background:#F3F4FF;border-radius:14px;padding:3px;margin-bottom:20px}
+.bct-btn{flex:1;border:none;background:none;border-radius:11px;padding:9px;font-family:'Nunito',sans-serif;font-weight:800;font-size:.85rem;cursor:pointer;color:#888;transition:all .2s;position:relative}
+.bct-btn.active{background:white;color:var(--dark);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.bct-btn .save-tag{position:absolute;top:-8px;right:-4px;background:var(--mint);color:white;border-radius:20px;padding:2px 6px;font-size:.62rem;font-weight:900;white-space:nowrap}
+
+/* ===== AI MEMORY / LOGIN REVIEW CARD ===== */
+.memory-card{background:white;border-radius:24px;border:2px solid var(--border);box-shadow:0 6px 24px rgba(91,196,255,.1);padding:0;overflow:hidden;margin-bottom:24px;animation:fadeIn .4s ease}
+.memory-card-header{background:linear-gradient(135deg,var(--sky),var(--violet));padding:16px 22px;display:flex;align-items:center;gap:12px}
+.memory-card-header .cosmo-sm{font-size:2rem;animation:float 3s ease-in-out infinite}
+.memory-card-header h3{font-family:'Fredoka One',cursive;font-size:1.1rem;color:white}
+.memory-card-header p{font-size:.8rem;color:rgba(255,255,255,.8);font-weight:600;margin-top:1px}
+.memory-card-body{padding:18px 22px}
+.memory-summary{font-size:.9rem;font-weight:700;color:var(--dark);line-height:1.65;margin-bottom:14px}
+.memory-summary strong{color:var(--violet)}
+.review-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.review-chip{border-radius:20px;padding:7px 14px;font-size:.8rem;font-weight:800;color:white;cursor:pointer;transition:all .2s;border:none;display:flex;align-items:center;gap:5px}
+.review-chip:hover{transform:translateY(-2px);filter:brightness(1.1)}
+.review-chip.science{background:var(--mint)}
+.review-chip.math{background:#F59E0B;color:#1E1B4B}
+.review-chip.english{background:var(--coral)}
+.review-chip.social{background:var(--violet)}
+.memory-dismiss{background:none;border:2px solid var(--border);border-radius:12px;padding:7px 16px;font-family:'Nunito',sans-serif;font-weight:800;font-size:.82rem;color:#888;cursor:pointer;transition:all .2s}
+.memory-dismiss:hover{border-color:var(--sky);color:var(--sky)}
+.memory-loading{display:flex;align-items:center;gap:10px;padding:4px 0;font-size:.85rem;font-weight:700;color:#888}
+.memory-loading .ml-dot{width:7px;height:7px;border-radius:50%;background:var(--violet);animation:tdot 1.2s ease-in-out infinite}
+.memory-loading .ml-dot:nth-child(2){animation-delay:.2s}
+.memory-loading .ml-dot:nth-child(3){animation-delay:.4s}
+.memory-tag{display:inline-flex;align-items:center;gap:4px;background:#F0F4FF;border-radius:20px;padding:3px 10px;font-size:.75rem;font-weight:800;color:var(--mid);margin:0 3px 4px 0}
+
+/* subscription status badge in topbar */
+.plan-status-badge{background:linear-gradient(135deg,var(--sky),var(--violet));color:white;border-radius:20px;padding:4px 12px;font-size:.72rem;font-weight:900;letter-spacing:.3px}
+.plan-status-badge.free{background:#F0F4FF;color:#888}
+
+/* ── Google Sign-In button (custom styled) ───────────────── */
+.btn-google-full{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;
+  background:white;border:2px solid #E5E7EB;border-radius:14px;padding:12px 20px;
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.95rem;color:#1E1B4B;
+  cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:0}
+.btn-google-full:hover{border-color:#5BC4FF;box-shadow:0 4px 16px rgba(91,196,255,.2);transform:translateY(-1px)}
+.btn-google-full .g-logo{width:20px;height:20px;flex-shrink:0;
+  background:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="%23EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.4 30.3 0 24 0 14.7 0 6.7 5.4 2.8 13.3l7.9 6.1C12.5 13.1 17.8 9.5 24 9.5z"/><path fill="%234285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="%2334A853" d="M10.7 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6L2.4 13.3A23.9 23.9 0 0 0 0 24c0 3.8.9 7.5 2.4 10.7l8.3-6.1z"/><path fill="%23FBBC05" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.2 0-11.5-4.2-13.3-9.9l-8.3 6.1C6.8 42.7 14.7 48 24 48z"/></svg>') center/contain no-repeat}
+
+/* ── Wallet pay section in payment modal ─────────────────── */
+.wallet-section{margin-bottom:18px}
+.wallet-section-label{font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#bbb;text-align:center;margin-bottom:10px}
+#payment-request-btn{border-radius:14px;overflow:hidden;min-height:48px}
+#payment-request-btn.pr-hidden{display:none}
+.wallet-unavailable{font-size:.75rem;color:#bbb;font-weight:700;text-align:center;padding:6px 0}
+.pay-or-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:#ddd;font-size:.78rem;font-weight:800;letter-spacing:.5px}
+.pay-or-divider::before,.pay-or-divider::after{content:'';flex:1;height:1px;background:#EEE}
+
+/* ── Google account chooser popup ────────────────────────── */
+.google-chooser-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2050;
+  backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center}
+.google-chooser-overlay.open{display:flex}
+.google-chooser{background:white;border-radius:28px;padding:30px 26px;width:min(380px,93vw);
+  position:relative;box-shadow:0 24px 64px rgba(0,0,0,.2);animation:fadeIn .22s ease}
+.google-chooser .gc-logo{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px}
+.google-chooser .gc-logo .g-logo{width:24px;height:24px;
+  background:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="%23EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.4 30.3 0 24 0 14.7 0 6.7 5.4 2.8 13.3l7.9 6.1C12.5 13.1 17.8 9.5 24 9.5z"/><path fill="%234285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="%2334A853" d="M10.7 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6L2.4 13.3A23.9 23.9 0 0 0 0 24c0 3.8.9 7.5 2.4 10.7l8.3-6.1z"/><path fill="%23FBBC05" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.2 0-11.5-4.2-13.3-9.9l-8.3 6.1C6.8 42.7 14.7 48 24 48z"/></svg>') center/contain no-repeat;flex-shrink:0}
+.google-chooser .gc-logo span{font-family:'Fredoka One',cursive;font-size:1rem;color:var(--dark)}
+.google-chooser h3{font-size:1rem;font-weight:800;color:var(--dark);margin-bottom:4px;text-align:center}
+.google-chooser .gc-sub{font-size:.8rem;color:#888;font-weight:600;text-align:center;margin-bottom:20px;line-height:1.5}
+.ga-option{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;
+  border:2px solid var(--border);cursor:pointer;transition:all .2s;margin-bottom:10px;background:white}
+.ga-option:hover{border-color:var(--sky);background:#F0FAFF;transform:translateX(3px)}
+.ga-option .ga-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;color:white;font-weight:900;font-size:1rem;flex-shrink:0}
+.ga-option .ga-info h5{font-weight:800;font-size:.88rem;color:var(--dark)}
+.ga-option .ga-info p{font-size:.76rem;color:#888;font-weight:600}
+.ga-option .ga-check{margin-left:auto;color:var(--mint);font-size:1.1rem;opacity:0;transition:opacity .2s}
+.ga-option:hover .ga-check{opacity:1}
+.ga-option.add-new{border-style:dashed;color:#888}
+.ga-option.add-new:hover{color:var(--sky)}
+.gc-close{position:absolute;top:14px;right:18px;background:none;border:none;font-size:1.4rem;
+  color:#ccc;cursor:pointer;line-height:1;padding:4px}
+.gc-close:hover{color:var(--dark)}
+.gc-role-note{background:#F0FAFF;border-radius:12px;padding:10px 14px;font-size:.78rem;
+  font-weight:700;color:#5B9BD5;margin-bottom:16px;text-align:center;line-height:1.5}
+/* ═══════════════════════════════════════════════
+   VOICE SYSTEM
+═══════════════════════════════════════════════ */
+
+/* Cosmo speaking pulse — rings radiate from avatar */
+.cosmo-avatar.speaking {
+  animation: none !important;
+  box-shadow: 0 0 0 0 rgba(91,196,255,.6);
+  animation: speakpulse 1.1s ease-out infinite !important;
+}
+@keyframes speakpulse {
+  0%   { box-shadow: 0 0 0 0 rgba(91,196,255,.7), 0 8px 28px rgba(91,196,255,.3); }
+  70%  { box-shadow: 0 0 0 22px rgba(91,196,255,0), 0 8px 28px rgba(91,196,255,.3); }
+  100% { box-shadow: 0 0 0 0 rgba(91,196,255,0), 0 8px 28px rgba(91,196,255,.3); }
+}
+
+/* Cosmo listening — green rings */
+.cosmo-avatar.listening {
+  animation: none !important;
+  box-shadow: 0 0 0 0 rgba(82,219,168,.7);
+  animation: listenpulse 0.8s ease-out infinite !important;
+}
+@keyframes listenpulse {
+  0%   { box-shadow: 0 0 0 0 rgba(82,219,168,.8); }
+  70%  { box-shadow: 0 0 0 18px rgba(82,219,168,0); }
+  100% { box-shadow: 0 0 0 0 rgba(82,219,168,0); }
+}
+
+/* Voice control bar — sits above the input row */
+.voice-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 18px;
+  background: linear-gradient(135deg,#F8FBFF,#F0F4FF);
+  border-top: 2px dashed var(--border);
+  gap: 10px;
+  flex-shrink: 0;
+}
+.voice-bar.hidden { display: none; }
+
+/* Waveform canvas */
+.waveform-wrap {
+  flex: 1;
+  height: 36px;
+  background: #EEF2FF;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+}
+#waveform-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.waveform-label {
+  position: absolute;
+  left: 12px;
+  font-size: .72rem;
+  font-weight: 800;
+  color: #A0B0CC;
+  pointer-events: none;
+}
+.waveform-label.speaking { color: var(--sky); }
+.waveform-label.listening { color: var(--mint); }
+
+/* Mic button */
+.mic-btn {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  transition: all .2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,.1);
+  background: linear-gradient(135deg, #E8F4FF, #D0E8FF);
+  color: var(--sky);
+  position: relative;
+}
+.mic-btn:hover { transform: scale(1.08); }
+.mic-btn.listening {
+  background: linear-gradient(135deg, var(--mint), #0EB58A);
+  color: white;
+  box-shadow: 0 4px 16px rgba(82,219,168,.45);
+  animation: micpulse .6s ease-in-out infinite alternate;
+}
+@keyframes micpulse {
+  from { transform: scale(1); }
+  to   { transform: scale(1.12); }
+}
+.mic-btn.disabled-mic {
+  background: #F0F0F0;
+  color: #CCC;
+  cursor: not-allowed;
+}
+/* Red dot on mic when listening */
+.mic-btn.listening::after {
+  content: '';
+  width: 9px; height: 9px;
+  background: #FF4444;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px; right: 2px;
+  border: 2px solid white;
+  animation: recdot .8s ease-in-out infinite alternate;
+}
+@keyframes recdot { from{opacity:1} to{opacity:.2} }
+
+/* Voice toggle in chat toolbar */
+.voice-toggle-btn { position: relative; }
+.voice-toggle-btn .voice-on-dot {
+  width: 8px; height: 8px;
+  background: var(--mint);
+  border-radius: 50%;
+  position: absolute;
+  top: -2px; right: -2px;
+  border: 2px solid white;
+  display: none;
+}
+.voice-toggle-btn.active .voice-on-dot { display: block; }
+
+/* Voice settings drawer */
+.voice-drawer {
+  position: absolute;
+  top: 58px; right: 0;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.14);
+  border: 2px solid var(--border);
+  padding: 18px;
+  width: 280px;
+  z-index: 100;
+  animation: fadeIn .2s ease;
+  display: none;
+}
+.voice-drawer.open { display: block; }
+.voice-drawer h4 {
+  font-family: 'Fredoka One', cursive;
+  font-size: 1rem; color: var(--dark);
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 6px;
+}
+.vd-row {
+  margin-bottom: 14px;
+}
+.vd-row label {
+  display: block;
+  font-size: .75rem; font-weight: 800;
+  color: #888; text-transform: uppercase;
+  letter-spacing: .5px; margin-bottom: 7px;
+}
+.vd-row select, .vd-row input[type=range] {
+  width: 100%;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700; font-size: .85rem;
+  color: var(--dark); background: white;
+  outline: none; cursor: pointer;
+}
+.vd-row input[type=range] {
+  padding: 6px 4px;
+  border: none; background: none;
+  accent-color: var(--violet);
+}
+.vd-speed-labels {
+  display: flex; justify-content: space-between;
+  font-size: .68rem; color: #aaa; font-weight: 700;
+  margin-top: 2px;
+}
+.vd-test-btn {
+  width: 100%;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 9px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800; font-size: .85rem;
+  color: var(--dark); background: white;
+  cursor: pointer; transition: all .2s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.vd-test-btn:hover { background: #F0FAFF; border-color: var(--sky); }
+.voice-on-label {
+  font-size: .72rem; font-weight: 800;
+  color: var(--mint);
+  display: none;
+}
+.icon-btn.active .voice-on-label { display: block; }
+
+/* Speaking transcript overlay on message bubbles */
+.msg-bub.cosmo-speaking {
+  background: linear-gradient(135deg, #E8F8FF, #F0EEFF) !important;
+  border-color: rgba(91,196,255,.4) !important;
+  position: relative;
+}
+.speaking-words span {
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+.speaking-words span.spoken { opacity: 1; }
+
+/* Auto-speak toggle pill */
+.autospeak-pill {
+  display: flex; align-items: center; gap: 6px;
+  font-size: .72rem; font-weight: 800; color: #888;
+}
+.autospeak-pill .toggle {
+  width: 34px; height: 18px;
+  background: #E5E7EB;
+  border-radius: 20px; cursor: pointer;
+  position: relative; transition: background .3s; flex-shrink: 0;
+}
+.autospeak-pill .toggle.on { background: var(--mint); }
+.autospeak-pill .toggle::after {
+  content:''; width:12px; height:12px;
+  background:white; border-radius:50%;
+  position:absolute; top:3px; left:3px;
+  transition:transform .25s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.autospeak-pill .toggle.on::after { transform: translateX(16px); }
+
+/* No speech API notice */
+.no-speech-notice {
+  background: #FFF8F0;
+  border: 1px solid #FFD93D;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: .78rem;
+  font-weight: 700;
+  color: #7A5700;
+  margin: 8px 18px;
+  display: none;
+}
+</style>
+</head>
+<body>
+
+<div class="blob-bg"><div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div></div>
+
+<!-- =============== LANDING PAGE =============== -->
+<div id="page-landing" class="page">
+  <nav class="land-nav">
+    <div class="land-logo"><span class="rocket">🚀</span> Cosmo Learns</div>
+    <div class="land-nav-btns">
+      <button class="btn btn-ghost" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">Pricing</button>
+      <button class="btn btn-ghost" onclick="showAuth('login')">Log In</button>
+      <button class="btn btn-primary" onclick="showAuth('signup')">Get Started Free</button>
+    </div>
+  </nav>
+  <div class="hero">
+    <h1>Learning is an<br>Adventure! 🌟</h1>
+    <p>Meet Cosmo — your child's AI tutor for Science, Math, English & Social Studies. Grades 3 to 9, always encouraging, always fun.</p>
+    <div class="hero-btns">
+      <button class="btn btn-primary" style="font-size:1.1rem;padding:14px 32px" onclick="showAuth('signup')">Start Learning Free 🚀</button>
+      <button class="btn btn-ghost" onclick="showAuth('login')">I'm a Parent 👨‍👩‍👧</button>
+    </div>
+    <span class="cosmo-hero">🤖</span>
+  </div>
+  <div class="features-grid">
+    <div class="feat-card"><span class="feat-icon">🧠</span><h3>AI-Powered Tutor</h3><p>Cosmo adapts explanations to your child's grade level and learning pace</p></div>
+    <div class="feat-card"><span class="feat-icon">🎯</span><h3>Smart Quizzes</h3><p>Auto-generated quizzes that track knowledge and celebrate progress</p></div>
+    <div class="feat-card"><span class="feat-icon">📊</span><h3>Parent Dashboard</h3><p>Full visibility into learning activity, quiz scores, and conversation history</p></div>
+    <div class="feat-card"><span class="feat-icon">🏆</span><h3>Achievements</h3><p>Stars, badges, and rewards to keep kids motivated and excited to learn</p></div>
+  </div>
+  <div class="stars-strip">⭐⭐⭐⭐⭐</div>
+  <p style="text-align:center;color:rgba(255,255,255,.45);font-size:.85rem;font-weight:700;padding-bottom:20px;position:relative;z-index:5">Loved by 10,000+ families worldwide</p>
+
+  <!-- ══════════════ PRICING SECTION ══════════════ -->
+  <div class="pricing-section" id="pricing">
+    <div class="pricing-eyebrow">Simple Pricing</div>
+    <h2 class="pricing-title">Learning for every family 🚀</h2>
+    <p class="pricing-sub">Start free, upgrade when you're ready. Cancel anytime.</p>
+
+    <!-- Billing Toggle -->
+    <div class="billing-toggle">
+      <span class="billing-label active" id="lbl-monthly">Monthly</span>
+      <div class="toggle-track" id="billing-track" onclick="toggleBilling()">
+        <div class="toggle-knob"></div>
+      </div>
+      <span class="billing-label" id="lbl-annual">Annual</span>
+      <span class="save-badge" id="save-badge" style="display:none">Save 20%</span>
+    </div>
+
+    <!-- Plans Grid -->
+    <div class="plans-grid">
+
+      <!-- FREE -->
+      <div class="plan-card free">
+        <span class="plan-icon">🌱</span>
+        <div class="plan-name">Free</div>
+        <div class="plan-tagline">Try Cosmo with no commitment</div>
+        <div class="plan-price-row"><span class="plan-price">$0</span><span class="plan-price-unit">/mo</span></div>
+        <div class="plan-original">&nbsp;</div>
+        <div class="plan-billed">Free forever</div>
+        <ul class="plan-features">
+          <li><span class="fi">✓</span>10 AI messages per day</li>
+          <li><span class="fi">✓</span>1 subject (Science)</li>
+          <li><span class="fi">✓</span>Grades 3–9 support</li>
+          <li class="dim"><span class="fi no">✗</span>Quiz mode</li>
+          <li class="dim"><span class="fi no">✗</span>Progress tracking</li>
+          <li class="dim"><span class="fi no">✗</span>Parent dashboard</li>
+          <li class="dim"><span class="fi no">✗</span>Multiple kids</li>
+        </ul>
+        <button class="plan-cta cta-free" onclick="showAuth('signup')">Get Started Free</button>
+      </div>
+
+      <!-- SOLO -->
+      <div class="plan-card basic">
+        <span class="plan-icon">⭐</span>
+        <div class="plan-name">Solo</div>
+        <div class="plan-tagline">Perfect for one child getting started</div>
+        <div class="plan-price-row">
+          <span class="plan-price" id="price-solo">$5.99</span>
+          <span class="plan-price-unit">/mo</span>
+        </div>
+        <div class="plan-original" id="orig-solo">&nbsp;</div>
+        <div class="plan-billed" id="billed-solo">Billed monthly</div>
+        <ul class="plan-features">
+          <li><span class="fi">✓</span>100 AI messages per day</li>
+          <li><span class="fi">✓</span>All 4 subjects</li>
+          <li><span class="fi">✓</span>Grades 3–9 support</li>
+          <li><span class="fi">✓</span>Progress tracking</li>
+          <li><span class="fi">✓</span>1 child profile</li>
+          <li class="dim"><span class="fi no">✗</span>Quiz mode</li>
+          <li class="dim"><span class="fi no">✗</span>Parent dashboard</li>
+        </ul>
+        <button class="plan-cta cta-solo" onclick="showAuth('signup')">Start Solo Plan ⭐</button>
+      </div>
+
+      <!-- FAMILY (POPULAR) -->
+      <div class="plan-card family">
+        <div class="popular-ribbon">Most Popular</div>
+        <span class="plan-icon">👨‍👩‍👧</span>
+        <div class="plan-name">Family</div>
+        <div class="plan-tagline">Everything your family needs to thrive</div>
+        <div class="plan-price-row">
+          <span class="plan-price" id="price-family">$19</span>
+          <span class="plan-price-unit">/mo</span>
+        </div>
+        <div class="plan-original" id="orig-family">&nbsp;</div>
+        <div class="plan-billed" id="billed-family">Billed monthly</div>
+        <ul class="plan-features">
+          <li><span class="fi">✓</span>Unlimited AI tutoring</li>
+          <li><span class="fi">✓</span>All 4 subjects</li>
+          <li><span class="fi">✓</span>Unlimited quizzes</li>
+          <li><span class="fi">✓</span>Up to 3 child profiles</li>
+          <li><span class="fi">✓</span>Full parent dashboard</li>
+          <li><span class="fi">✓</span>Conversation history</li>
+          <li><span class="fi">✓</span>Learning alerts &amp; streaks</li>
+        </ul>
+        <button class="plan-cta cta-family" onclick="showAuth('signup')">Start Family Plan 🚀</button>
+      </div>
+
+      <!-- PRO -->
+      <div class="plan-card pro">
+        <span class="plan-icon">🏆</span>
+        <div class="plan-name">Family Pro</div>
+        <div class="plan-tagline">For power families with big learning goals</div>
+        <div class="plan-price-row">
+          <span class="plan-price" id="price-pro">$35</span>
+          <span class="plan-price-unit">/mo</span>
+        </div>
+        <div class="plan-original" id="orig-pro">&nbsp;</div>
+        <div class="plan-billed" id="billed-pro">Billed monthly</div>
+        <ul class="plan-features">
+          <li><span class="fi">✓</span>Everything in Family</li>
+          <li><span class="fi">✓</span>Up to 6 child profiles</li>
+          <li><span class="fi">✓</span>Weekly PDF progress reports</li>
+          <li><span class="fi">✓</span>Custom learning goals per child</li>
+          <li><span class="fi">✓</span>Priority AI response speed</li>
+          <li><span class="fi">✓</span>School/homework mode</li>
+          <li><span class="fi">✓</span>Priority email support</li>
+        </ul>
+        <button class="plan-cta cta-pro" onclick="showAuth('signup')">Go Pro 🏆</button>
+      </div>
+    </div>
+
+    <p class="pricing-note">All plans include a <span>7-day free trial</span>. No credit card required to start. Cancel anytime, no questions asked.</p>
+
+    <!-- Comparison Table -->
+    <div class="compare-wrap">
+      <div class="compare-title">Full Feature Comparison</div>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Free</th>
+            <th>Solo</th>
+            <th class="hl-col">Family</th>
+            <th>Pro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>AI tutoring messages</td><td><span class="partial">10/day</span></td><td><span class="partial">100/day</span></td><td class="hl-col"><span class="check">Unlimited</span></td><td><span class="check">Unlimited</span></td></tr>
+          <tr><td>Subjects covered</td><td><span class="partial">1</span></td><td><span class="check">All 4</span></td><td class="hl-col"><span class="check">All 4</span></td><td><span class="check">All 4</span></td></tr>
+          <tr><td>Grades supported</td><td><span class="check">3–9</span></td><td><span class="check">3–9</span></td><td class="hl-col"><span class="check">3–9</span></td><td><span class="check">3–9</span></td></tr>
+          <tr><td>Progress tracking</td><td><span class="cross">✗</span></td><td><span class="check">✓</span></td><td class="hl-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Smart quiz mode</td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td class="hl-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Child profiles</td><td><span class="partial">1</span></td><td><span class="partial">1</span></td><td class="hl-col"><span class="check">3</span></td><td><span class="check">6</span></td></tr>
+          <tr><td>Parent dashboard</td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td class="hl-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Conversation history</td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td class="hl-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Achievements &amp; badges</td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td class="hl-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Learning alerts</td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td class="hl-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Weekly PDF reports</td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td class="hl-col"><span class="cross">✗</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Custom learning goals</td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td class="hl-col"><span class="cross">✗</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Priority support</td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td class="hl-col"><span class="cross">✗</span></td><td><span class="check">✓</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- FAQ -->
+    <div class="faq-strip">
+      <div class="faq-title">Frequently Asked Questions</div>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">Can I switch plans or cancel anytime? <span class="faq-chevron">▾</span></div>
+        <div class="faq-a">Absolutely. You can upgrade, downgrade, or cancel your subscription at any time from your account settings. There are no cancellation fees or lock-in contracts.</div>
+      </div>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">Is Cosmo safe for kids? <span class="faq-chevron">▾</span></div>
+        <div class="faq-a">Yes! Every response from Cosmo uses a strict child-safe system prompt. There is no way for children to bypass content filters. Parents can also review all conversations in the parent dashboard at any time.</div>
+      </div>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">What subjects and grades does Cosmo cover? <span class="faq-chevron">▾</span></div>
+        <div class="faq-a">Cosmo covers Science, Math, English Language Arts, and Social Studies for Grades 3 through 9. The AI automatically adjusts vocabulary, examples, and difficulty to match the selected grade level.</div>
+      </div>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">How does the 7-day free trial work? <span class="faq-chevron">▾</span></div>
+        <div class="faq-a">Sign up with just your email — no credit card required. You get full access to your chosen paid plan for 7 days. After that, you choose to subscribe or drop to the free tier automatically.</div>
+      </div>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">Do you offer discounts for schools or districts? <span class="faq-chevron">▾</span></div>
+        <div class="faq-a">Yes! We offer custom licensing for schools and school districts with volume pricing, teacher dashboards, and district-wide reporting. Contact us at <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2a594942454546596a4945594745464f4b58445904494547">[email&#160;protected]</a> for a quote.</div>
+      </div>
+    </div>
+
+  </div><!-- /pricing-section -->
+</div><!-- /page-landing -->
+
+<!-- =============== AUTH MODAL =============== -->
+<div class="modal-overlay hidden" id="auth-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAuth()">✕</button>
+    <div class="modal-cosmo-row">🤖</div>
+    <h2 id="auth-title">Welcome!</h2>
+    <p class="sub" id="auth-sub">Join millions of curious learners</p>
+    <div class="tabs" id="auth-tabs">
+      <button class="tab-btn active" onclick="switchAuthTab('signup')">Sign Up</button>
+      <button class="tab-btn" onclick="switchAuthTab('login')">Log In</button>
+    </div>
+    <div id="auth-error" class="error-msg hidden"></div>
+
+    <!-- SIGN UP FORM -->
+    <div id="signup-form">
+      <div style="margin-bottom:14px">
+        <p style="font-size:.82rem;font-weight:800;color:var(--dark);margin-bottom:8px">I am a...</p>
+        <div class="role-toggle">
+          <div class="role-card active" id="role-parent" onclick="selectRole('parent')">
+            <span class="role-icon">👨‍👩‍👧</span><div class="role-label">Parent</div>
+          </div>
+          <div class="role-card" id="role-kid" onclick="selectRole('kid')">
+            <span class="role-icon">🎒</span><div class="role-label">Student</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Google Sign-In button (primary CTA) -->
+      <button class="btn-google-full" onclick="doGoogleAuth('signup')">
+        <div class="g-logo"></div>
+        Continue with Google
+      </button>
+
+      <div class="divider">or sign up with email</div>
+
+      <div class="form-group"><label>Full Name</label><input type="text" id="su-name" placeholder="Your name"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="su-email" placeholder="you@email.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="su-pass" placeholder="Create a password"></div>
+      <div class="form-group" id="su-grade-wrap"><label>Grade (if student)</label><select id="su-grade"><option value="3">Grade 3</option><option value="4">Grade 4</option><option value="5" selected>Grade 5</option><option value="6">Grade 6</option><option value="7">Grade 7</option><option value="8">Grade 8</option><option value="9">Grade 9</option></select></div>
+      <button class="btn btn-primary btn-full" onclick="doSignup()">Create My Account 🚀</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div id="login-form" class="hidden">
+      <!-- Google Sign-In button (primary CTA) -->
+      <button class="btn-google-full" onclick="doGoogleAuth('login')">
+        <div class="g-logo"></div>
+        Continue with Google
+      </button>
+
+      <div class="divider">or log in with email</div>
+
+      <div class="form-group"><label>Email</label><input type="email" id="li-email" placeholder="you@email.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="li-pass" placeholder="Your password"></div>
+      <button class="btn btn-primary btn-full" onclick="doLogin()">Log In 🚀</button>
+    </div>
+  </div>
+</div>
+
+<!-- =============== GOOGLE ACCOUNT CHOOSER =============== -->
+<div class="google-chooser-overlay" id="google-chooser-overlay" onclick="closeGoogleChooser(event)">
+  <div class="google-chooser">
+    <button class="gc-close" onclick="closeGoogleChooser()">✕</button>
+    <div class="gc-logo"><div class="g-logo"></div><span>Sign in with Google</span></div>
+    <h3>Choose an account</h3>
+    <p class="gc-sub">to continue to <strong>Cosmo Learns</strong></p>
+
+    <div class="gc-role-note" id="gc-role-note">
+      👨‍👩‍👧 Signing in as a <strong id="gc-role-label">Parent</strong> — you'll get the full parent dashboard
+    </div>
+
+    <!-- Demo Google accounts (real: replaced by google.accounts.id popup) -->
+    <div class="ga-option" onclick="completeGoogleAuth({name:'Sarah Johnson',email:'sarah.johnson@gmail.com',avatar:'S',color:'#4285F4'})">
+      <div class="ga-av" style="background:linear-gradient(135deg,#4285F4,#34A853)">S</div>
+      <div class="ga-info"><h5>Sarah Johnson</h5><p><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="03706271626b2d696c6b6d706c6d43646e626a6f2d606c6e">[email&#160;protected]</a></p></div>
+      <span class="ga-check">✓</span>
+    </div>
+    <div class="ga-option" onclick="completeGoogleAuth({name:'Mike Chen',email:'mike.chen@gmail.com',avatar:'M',color:'#EA4335'})">
+      <div class="ga-av" style="background:linear-gradient(135deg,#EA4335,#FBBC05)">M</div>
+      <div class="ga-info"><h5>Mike Chen</h5><p><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2d40444648034e4548436d4a404c4441034e4240">[email&#160;protected]</a></p></div>
+      <span class="ga-check">✓</span>
+    </div>
+    <div class="ga-option add-new" onclick="completeGoogleAuth({name:'New Google User',email:'newuser@gmail.com',avatar:'G',color:'#34A853'})">
+      <div class="ga-av" style="background:#E5E7EB;color:#888;font-size:1.4rem">+</div>
+      <div class="ga-info"><h5 style="color:inherit">Use another account</h5><p>Sign in with a different Google account</p></div>
+    </div>
+    <p style="font-size:.7rem;color:#ccc;font-weight:700;text-align:center;margin-top:8px">Demo chooser — connects to real Google OAuth in production</p>
+  </div>
+</div>
+
+<!-- =============== APP SHELL (shared topbar logic) =============== -->
+
+<!-- =============== KID DASHBOARD =============== -->
+<div id="page-kid-dash" class="page hidden">
+  <div class="topbar">
+    <div class="topbar-logo">🚀 Cosmo Learns</div>
+    <div style="position:relative">
+      <div class="user-pill" onclick="toggleMenu('kid-menu')">
+        <div class="user-avatar" id="kid-avatar-tb">A</div>
+        <span class="user-name" id="kid-name-tb">Alex</span>
+      </div>
+      <div class="user-menu hidden" id="kid-menu">
+        <a onclick="navigate('tutor')">🤖 Go to Tutor</a>
+        <a onclick="navigate('kid-dash')">🏠 Dashboard</a>
+        <a class="danger" onclick="logout()">🚪 Log Out</a>
+      </div>
+    </div>
+  </div>
+  <div class="kid-main">
+    <div class="welcome-banner">
+      <div class="welcome-left">
+        <h2>Hey, <span id="kid-greeting-name">Alex</span>! 👋</h2>
+        <p>Ready to learn something amazing today?<br>You have <strong id="kid-streak">5</strong> day streak! 🔥</p>
+      </div>
+      <span class="welcome-cosmo">🤖</span>
+    </div>
+
+    <!-- Upgrade banner shown to free users -->
+    <div class="upgrade-banner" id="upgrade-banner" style="display:none">
+      <div class="ub-text">
+        <h4>🚀 Unlock Full Access</h4>
+        <p>You're on the Free plan. Upgrade for unlimited tutoring, quizzes, and the parent dashboard.</p>
+      </div>
+      <button class="ub-btn" onclick="navigate('landing');setTimeout(()=>document.getElementById('pricing').scrollIntoView({behavior:'smooth'}),400)">See Plans ✨</button>
+    </div>
+
+    <div class="section-title">📊 Your Progress</div>
+    <div class="progress-row" id="progress-row">
+      <!-- injected by JS -->
+    </div>
+
+    <div class="section-title">📚 Pick a Subject</div>
+    <div class="subject-grid">
+      <div class="subj-card" style="background:var(--science-g)" onclick="openTutor('science')">
+        <h3>🔬 Science</h3><p>Discover how the world works</p>
+        <span class="subj-btn">Start Learning</span>
+        <span class="subj-bg-icon">🔬</span>
+      </div>
+      <div class="subj-card" style="background:var(--math-g)" onclick="openTutor('math')">
+        <h3>🔢 Math</h3><p>Numbers, shapes & patterns</p>
+        <span class="subj-btn">Start Learning</span>
+        <span class="subj-bg-icon">🔢</span>
+      </div>
+      <div class="subj-card" style="background:var(--english-g)" onclick="openTutor('english')">
+        <h3>📖 English</h3><p>Reading, writing & grammar</p>
+        <span class="subj-btn">Start Learning</span>
+        <span class="subj-bg-icon">📖</span>
+      </div>
+      <div class="subj-card" style="background:var(--social-g)" onclick="openTutor('social')">
+        <h3>🌍 Social Studies</h3><p>History, geography & culture</p>
+        <span class="subj-btn">Start Learning</span>
+        <span class="subj-bg-icon">🌍</span>
+      </div>
+    </div>
+
+    <div class="section-title">🕐 Recent Activity</div>
+    <div class="recent-box" id="recent-box">
+      <!-- injected -->
+    </div>
+
+    <div class="section-title">🏆 Achievements</div>
+    <div class="achievements-row" id="achievements-row">
+      <!-- injected -->
+    </div>
+  </div>
+</div>
+
+<!-- =============== TUTOR PAGE =============== -->
+<div id="page-tutor" class="page hidden">
+  <div class="topbar">
+    <div class="topbar-logo">🚀 Cosmo Learns</div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="btn btn-ghost" style="color:var(--dark);background:#F0F4FF;padding:8px 16px;font-size:.85rem" onclick="navigate('kid-dash')">← Dashboard</button>
+      <div style="position:relative">
+        <div class="user-pill" onclick="toggleMenu('tutor-menu')">
+          <div class="user-avatar" id="tutor-avatar-tb">A</div>
+          <span class="user-name" id="tutor-name-tb">Alex</span>
+        </div>
+        <div class="user-menu hidden" id="tutor-menu">
+          <a onclick="navigate('kid-dash')">🏠 Dashboard</a>
+          <a class="danger" onclick="logout()">🚪 Log Out</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tutor-wrap">
+    <!-- COSMO SIDE -->
+    <div class="cosmo-side">
+      <div class="cosmo-avatar" id="cosmo-av" onclick="cosmoReact()">🤖</div>
+      <div class="cosmo-name-lbl">Cosmo</div>
+      <div class="cosmo-status" id="cosmo-status">Ready to learn! 🚀</div>
+      <div class="subj-badge-pill" id="subj-badge" style="background:linear-gradient(135deg,#52DBA8,#0EB58A)">🔬 Science Mode</div>
+      <select class="grade-pick" id="grade-pick">
+        <option value="3">Grade 3</option><option value="4">Grade 4</option>
+        <option value="5" selected>Grade 5</option><option value="6">Grade 6</option>
+        <option value="7">Grade 7</option><option value="8">Grade 8</option>
+        <option value="9">Grade 9</option>
+      </select>
+      <div class="cosmo-stat-box">
+        <div class="stat-lbl">Session Stars</div>
+        <div class="cosmo-stars" id="session-stars">⭐⭐</div>
+      </div>
+      <div class="tip-box" id="cosmo-tip">
+        <strong>💡 Cosmo's Tip:</strong>No question is too small — every question makes you smarter!
+      </div>
+      <div style="width:100%">
+        <div style="font-size:.78rem;font-weight:800;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Subjects</div>
+        <div class="subj-mini-tabs" id="subj-tabs">
+          <button class="subj-mini-btn active" style="background:var(--science-g)" onclick="setSubject('science')">🔬 Science</button>
+          <button class="subj-mini-btn" onclick="setSubject('math')">🔢 Math</button>
+          <button class="subj-mini-btn" onclick="setSubject('english')">📖 English</button>
+          <button class="subj-mini-btn" onclick="setSubject('social')">🌍 Social Studies</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT COL -->
+    <div class="chat-col">
+      <div class="chat-top">
+        <h3 id="chat-title">🔬 Science Chat — Grade 5</h3>
+        <div class="chat-top-right" style="position:relative">
+          <button class="icon-btn" id="quiz-toggle-btn" title="Quiz Mode" onclick="toggleQuizMode()">🎯</button>
+          <!-- Voice toggle button -->
+          <button class="icon-btn voice-toggle-btn" id="voice-toggle-btn" title="Voice on/off" onclick="toggleVoicePanel()">
+            🔊
+            <span class="voice-on-dot"></span>
+          </button>
+          <!-- Voice settings drawer -->
+          <div class="voice-drawer" id="voice-drawer">
+            <h4>🔊 Cosmo's Voice</h4>
+            <div class="vd-row">
+              <label>Voice Character</label>
+              <select id="vd-voice-select" onchange="updateVoiceSettings()">
+                <option value="">Loading voices…</option>
+              </select>
+            </div>
+            <div class="vd-row">
+              <label>Speed</label>
+              <input type="range" id="vd-speed" min="0.6" max="1.4" step="0.05" value="0.9" oninput="updateVoiceSettings();document.getElementById('vd-speed-val').textContent=this.value+'×'">
+              <div class="vd-speed-labels"><span>Slower</span><span id="vd-speed-val">0.9×</span><span>Faster</span></div>
+            </div>
+            <div class="vd-row">
+              <label>Pitch</label>
+              <input type="range" id="vd-pitch" min="0.8" max="1.6" step="0.05" value="1.15" oninput="updateVoiceSettings();document.getElementById('vd-pitch-val').textContent=this.value">
+              <div class="vd-speed-labels"><span>Deeper</span><span id="vd-pitch-val">1.15</span><span>Higher</span></div>
+            </div>
+            <div class="vd-row" style="display:flex;align-items:center;justify-content:space-between">
+              <label style="margin:0">Auto-speak replies</label>
+              <div class="autospeak-pill">
+                <div class="toggle on" id="autospeak-toggle" onclick="this.classList.toggle('on');APP.voice.autoSpeak=this.classList.contains('on')"></div>
+              </div>
+            </div>
+            <button class="vd-test-btn" onclick="testVoice()">▶ Test Cosmo's Voice</button>
+          </div>
+          <button class="icon-btn" title="Clear chat" onclick="clearChat()">🗑️</button>
+        </div>
+      </div>
+
+      <!-- CHAT VIEW -->
+      <div id="chat-view" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+        <div class="msgs-area" id="msgs-area"></div>
+        <div class="suggestions-bar" id="suggestions-bar"></div>
+
+        <!-- No speech API notice (shown when STT unavailable) -->
+        <div class="no-speech-notice" id="no-speech-notice">
+          🎤 Voice input isn't supported in this browser. Try Chrome or Edge for the full experience!
+        </div>
+
+        <!-- Voice waveform bar (shown when voice is active) -->
+        <div class="voice-bar hidden" id="voice-bar">
+          <div class="waveform-wrap">
+            <canvas id="waveform-canvas"></canvas>
+            <span class="waveform-label" id="waveform-label">Cosmo is thinking…</span>
+          </div>
+          <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Hold to speak">🎤</button>
+          <button class="icon-btn" onclick="stopSpeaking()" title="Stop Cosmo speaking" style="flex-shrink:0">⏹</button>
+        </div>
+
+        <div class="input-row">
+          <textarea class="chat-input" id="chat-input" rows="1" placeholder="Ask Cosmo anything…" onkeydown="handleInputKey(event)" oninput="autoGrow(this)"></textarea>
+          <button class="send-btn" id="send-btn" onclick="sendMsg()">🚀</button>
+        </div>
+      </div>
+
+      <!-- QUIZ VIEW -->
+      <div id="quiz-view" class="hidden" style="flex:1;overflow:hidden">
+        <div class="quiz-panel" id="quiz-panel">
+          <div class="quiz-loading">
+            <div class="spinner"></div>
+            <p style="font-weight:700;color:#888">Generating your quiz…</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =============== PARENT DASHBOARD =============== -->
+<div id="page-parent-dash" class="page hidden">
+  <div class="topbar">
+    <div class="topbar-logo">🚀 Cosmo Learns — Parent View</div>
+    <div style="position:relative">
+      <div class="user-pill" onclick="toggleMenu('parent-menu')">
+        <div class="user-avatar" id="parent-avatar-tb">P</div>
+        <span class="user-name" id="parent-name-tb">Parent</span>
+      </div>
+      <div class="user-menu hidden" id="parent-menu">
+        <a onclick="navigate('parent-dash')">📊 Dashboard</a>
+        <a class="danger" onclick="logout()">🚪 Log Out</a>
+      </div>
+    </div>
+  </div>
+  <div class="parent-main">
+    <div class="parent-header">
+      <div>
+        <h2>Parent Dashboard 📊</h2>
+        <p>Monitor learning progress and review conversations for all your kids.</p>
+      </div>
+      <span class="ph-icon">👨‍👩‍👧‍👦</span>
+    </div>
+
+    <div class="section-title">👦 Your Kids</div>
+    <div class="kids-section" id="kids-section">
+      <!-- injected -->
+    </div>
+
+    <div class="section-title">⚠️ Learning Alerts</div>
+    <div class="alerts-box" id="alerts-box"></div>
+
+    <div class="section-title">💬 Recent Conversations</div>
+    <div class="review-section">
+      <div class="review-header">
+        <h3>Conversation History</h3>
+        <select style="border:2px solid var(--border);border-radius:12px;padding:7px 14px;font-family:'Nunito',sans-serif;font-weight:700;font-size:.85rem;outline:none;color:var(--dark)" id="conv-filter">
+          <option>All Kids</option>
+        </select>
+      </div>
+      <div class="conv-list" id="conv-list"></div>
+    </div>
+
+    <div class="section-title">⚙️ Settings</div>
+    <div class="settings-row">
+      <div class="settings-card">
+        <h4>📱 Notifications</h4>
+        <div class="toggle-row">Daily learning summary <div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="toggle-row">Quiz completion alerts <div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="toggle-row">Weekly progress report <div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+        <div class="toggle-row">Achievement notifications <div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+      <div class="settings-card">
+        <h4>🛡️ Content Controls</h4>
+        <div class="toggle-row">Safe mode (always on) <div class="toggle on"></div></div>
+        <div class="toggle-row">Review conversations <div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="toggle-row">Limit daily session time <div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+        <div class="toggle-row">Require parent approval for quiz topics <div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =============== PAYMENT MODAL =============== -->
+<div class="modal-overlay hidden" id="payment-overlay">
+  <div class="payment-modal">
+    <button class="modal-close" onclick="closePayment()">✕</button>
+
+    <!-- Success screen -->
+    <div id="payment-success" class="hidden">
+      <div class="payment-success-screen">
+        <div class="success-icon">🎉</div>
+        <h3>You're all set!</h3>
+        <div class="plan-pill" id="success-plan-pill">👨‍👩‍👧 Family Plan</div>
+        <p>Your subscription is active. Cosmo is ready to teach your whole family — unlimited tutoring, quizzes, and more!</p>
+        <button class="btn btn-primary btn-full" onclick="closePaymentSuccess()">Start Learning 🚀</button>
+      </div>
+    </div>
+
+    <!-- Payment form -->
+    <div id="payment-form-wrap">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+        <span style="font-size:1.8rem">🤖</span>
+        <div>
+          <h2 style="font-family:'Fredoka One',cursive;font-size:1.5rem;color:var(--dark);line-height:1">Upgrade to Cosmo</h2>
+          <p style="color:#888;font-size:.85rem;font-weight:600">7-day free trial — cancel anytime</p>
+        </div>
+      </div>
+      <div class="billing-cycle-tabs" id="pay-plan-tabs">
+        <button class="bct-btn" id="pay-solo-btn" onclick="selectPayPlan('solo')">⭐ Solo<br><small>1 child</small></button>
+        <button class="bct-btn active" id="pay-family-btn" onclick="selectPayPlan('family')">👨‍👩‍👧 Family<br><small>Up to 3 kids</small></button>
+        <button class="bct-btn" id="pay-pro-btn" onclick="selectPayPlan('pro')">🏆 Family Pro<br><small>Up to 6 kids</small><span class="save-tag">BEST VALUE</span></button>
+      </div>
+      <div class="billing-cycle-tabs" id="pay-cycle-tabs">
+        <button class="bct-btn active" id="pay-monthly-btn" onclick="selectPayCycle('monthly')">Monthly</button>
+        <button class="bct-btn" id="pay-annual-btn" onclick="selectPayCycle('annual')">Annual <span class="save-tag">SAVE 20%</span></button>
+      </div>
+      <div class="plan-summary" id="pay-plan-summary">
+        <div class="ps-left">
+          <h4 id="ps-name">👨‍👩‍👧 Family Plan</h4>
+          <p id="ps-desc">Unlimited tutoring · 3 kids · All subjects</p>
+        </div>
+        <div class="ps-price"><span id="ps-price">$19</span><span>/mo</span></div>
+      </div>
+
+      <div id="payment-error-msg" class="payment-error hidden"></div>
+
+      <!-- ── WALLET PAY (Apple Pay / Google Pay via Stripe Payment Request) ── -->
+      <div class="wallet-section" id="wallet-section">
+        <div class="wallet-section-label">Express checkout</div>
+        <!-- Stripe renders the correct button (Apple Pay on Safari/iOS, Google Pay on Chrome/Android) -->
+        <div id="payment-request-btn" class="pr-hidden"></div>
+        <!-- Shown only when Payment Request API is unavailable in this browser -->
+        <div class="wallet-unavailable" id="wallet-unavailable">
+          Apple Pay &amp; Google Pay available on supported devices
+        </div>
+      </div>
+      <div class="pay-or-divider" id="pay-or-divider">OR PAY WITH CARD</div>
+
+      <!-- ── CARD FORM ─────────────────────────────────────────────────────── -->
+      <div class="stripe-field-wrap">
+        <label>Cardholder Name</label>
+        <input type="text" id="cardholder-name" placeholder="Jane Smith">
+      </div>
+      <div class="stripe-field-wrap">
+        <label>Card Details</label>
+        <div class="stripe-card-element" id="stripe-card-element"></div>
+      </div>
+      <div class="stripe-row">
+        <div class="stripe-field-wrap"><label>Email</label><input type="email" id="pay-email" placeholder="you@email.com"></div>
+        <div class="stripe-field-wrap"><label>Promo Code</label><input type="text" id="promo-code" placeholder="Optional"></div>
+      </div>
+      <button class="pay-btn" id="pay-submit-btn" onclick="submitPayment()">
+        <span id="pay-btn-text">Start Free Trial 🚀</span>
+      </button>
+      <div class="stripe-secure-note"><span class="lock">🔒</span> Secured by Stripe · No charge for 7 days</div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD KID MODAL -->
+<div class="modal-overlay hidden" id="add-kid-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAddKid()">✕</button>
+    <div class="modal-cosmo-row">🎒</div>
+    <h2>Add a Child</h2>
+    <p class="sub">Create a learning profile for your child</p>
+    <div class="form-group"><label>Child's Name</label><input type="text" id="kid-name-inp" placeholder="e.g. Alex"></div>
+    <div class="form-group"><label>Grade</label><select id="kid-grade-inp"><option value="3">Grade 3</option><option value="4">Grade 4</option><option value="5" selected>Grade 5</option><option value="6">Grade 6</option><option value="7">Grade 7</option><option value="8">Grade 8</option><option value="9">Grade 9</option></select></div>
+    <div class="form-group">
+      <label>Choose Avatar</label>
+      <div class="avatar-picker" id="avatar-picker">
+        <div class="av-opt selected" data-av="🦊" onclick="pickAvatar(this)">🦊</div>
+        <div class="av-opt" data-av="🐸" onclick="pickAvatar(this)">🐸</div>
+        <div class="av-opt" data-av="🦋" onclick="pickAvatar(this)">🦋</div>
+        <div class="av-opt" data-av="🐼" onclick="pickAvatar(this)">🐼</div>
+        <div class="av-opt" data-av="🦄" onclick="pickAvatar(this)">🦄</div>
+        <div class="av-opt" data-av="🐙" onclick="pickAvatar(this)">🐙</div>
+        <div class="av-opt" data-av="🦁" onclick="pickAvatar(this)">🦁</div>
+        <div class="av-opt" data-av="🐬" onclick="pickAvatar(this)">🐬</div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="saveKid()">Add Child 🎉</button>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ==============================
+// STATE & STORAGE
+// ==============================
+let APP = {
+  currentPage: 'landing',
+  currentUser: null,
+  currentSubject: 'science',
+  chatMessages: [],
+  sessionStars: 2,
+  quizMode: false,
+  quizData: null,
+  quizIdx: 0,
+  quizScore: 0,
+  waiting: false
+};
+
+// Simulated DB in memory (would be Firebase/Supabase in production)
+let DB = {
+  users: JSON.parse(localStorage.getItem('cl_users') || '[]'),
+  sessions: JSON.parse(localStorage.getItem('cl_sessions') || '[]')
+};
+
+function saveDB() {
+  localStorage.setItem('cl_users', JSON.stringify(DB.users));
+  localStorage.setItem('cl_sessions', JSON.stringify(DB.sessions));
+}
+
+// Default sample data for demo
+const SAMPLE_KIDS = [
+  { id:'k1', name:'Alex', grade:5, avatar:'🦊', stars:42, streak:5,
+    subjects:{ science:72, math:55, english:88, social:40 },
+    quizScores:[{subj:'science',score:8,total:10,date:'Mar 17'},{subj:'math',score:6,total:10,date:'Mar 16'}] },
+  { id:'k2', name:'Jamie', grade:7, avatar:'🦋', stars:28, streak:2,
+    subjects:{ science:60, math:80, english:45, social:70 },
+    quizScores:[{subj:'english',score:7,total:10,date:'Mar 18'}] }
+];
+
+const SAMPLE_CONVOS = [
+  { kid:'Alex', subj:'science', topic:'How do volcanoes erupt?', time:'Today, 3:45 PM', score:'9/10', quality:'Great' },
+  { kid:'Jamie', subj:'math', topic:'Help with fractions division', time:'Today, 2:10 PM', score:'7/10', quality:'Good' },
+  { kid:'Alex', subj:'english', topic:'Writing a persuasive essay', time:'Yesterday', score:null, quality:null },
+  { kid:'Jamie', subj:'social', topic:'Ancient Egyptian civilization', time:'Mar 17', score:'8/10', quality:'Great' }
+];
+
+const SUBJECTS = {
+  science:  { emoji:'🔬', label:'Science',       bg:'var(--science-g)', color:'#0EB58A', tagColor:'#52DBA8' },
+  math:     { emoji:'🔢', label:'Math',           bg:'var(--math-g)',    color:'#D97706', tagColor:'#FFD93D' },
+  english:  { emoji:'📖', label:'English',        bg:'var(--english-g)', color:'#DC2626', tagColor:'#FF7B6B' },
+  social:   { emoji:'🌍', label:'Social Studies', bg:'var(--social-g)',  color:'#7C3AED', tagColor:'#A78BFA' }
+};
+
+const SUGGESTIONS = {
+  science: ['What is photosynthesis?','How do volcanoes work?','Why is the sky blue?','Explain the water cycle'],
+  math:    ['Help with fractions','What is BEDMAS?','Explain negative numbers','How to find area?'],
+  english: ['Help write a paragraph','What is a metaphor?','Fix my grammar','Main idea vs details'],
+  social:  ['Tell me about ancient Egypt','What is democracy?','How do maps work?','Explain World War II']
+};
+
+const TIPS = {
+  science: '💡 Ask "Why?" and "How?" — that\'s what scientists do!',
+  math:    '💡 Break big problems into small steps. You\'ve got this!',
+  english: '💡 Reading every day makes you a better writer naturally!',
+  social:  '💡 History helps us understand today. Every place has a story!'
+};
+
+const MOODS = {
+  thinking: ['Hmm, let me think... 🤔','Great question! 💭','Interesting! 🧐'],
+  happy: ['Awesome work! 🎉','You\'re so smart! ⭐','Great question! 🌟'],
+  idle: ['Ready to explore! 🚀','What shall we learn? 🎓','Ask me anything! 💬']
+};
+
+const BADGES = [
+  { id:'first_lesson', icon:'🎓', name:'First Lesson!', desc:'Started learning', earned:true },
+  { id:'science_star', icon:'🔬', name:'Science Star', desc:'10 science questions', earned:true },
+  { id:'math_wizard', icon:'🔢', name:'Math Wizard', desc:'Score 100% on math quiz', earned:false },
+  { id:'bookworm', icon:'📚', name:'Bookworm', desc:'5 English sessions', earned:true },
+  { id:'streak_5', icon:'🔥', name:'5 Day Streak!', desc:'5 days in a row', earned:true },
+  { id:'quiz_ace', icon:'🏆', name:'Quiz Ace', desc:'10 perfect quiz scores', earned:false }
+];
+
+// ==============================
+// AUTH
+// ==============================
+let authMode = 'signup';
+let selectedRole = 'parent';
+
+function showAuth(mode) {
+  authMode = mode;
+  document.getElementById('auth-overlay').classList.remove('hidden');
+  switchAuthTab(mode);
+}
+function closeAuth() { document.getElementById('auth-overlay').classList.add('hidden'); }
+
+function switchAuthTab(mode) {
+  authMode = mode;
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', (mode==='signup' && i===0)||(mode==='login' && i===1));
+  });
+  document.getElementById('signup-form').classList.toggle('hidden', mode !== 'signup');
+  document.getElementById('login-form').classList.toggle('hidden', mode !== 'login');
+  document.getElementById('auth-title').textContent = mode === 'signup' ? 'Create Account' : 'Welcome Back!';
+  document.getElementById('auth-sub').textContent = mode === 'signup' ? 'Join millions of curious learners' : 'Pick up where you left off';
+  document.getElementById('auth-error').classList.add('hidden');
+}
+
+function selectRole(role) {
+  selectedRole = role;
+  document.getElementById('role-parent').classList.toggle('active', role==='parent');
+  document.getElementById('role-kid').classList.toggle('active', role==='kid');
+  document.getElementById('su-grade-wrap').style.display = role==='kid' ? 'block' : 'none';
+}
+selectRole('parent');
+
+function showError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg; el.classList.remove('hidden');
+}
+
+function doSignup() {
+  const name = document.getElementById('su-name').value.trim();
+  const email = document.getElementById('su-email').value.trim();
+  const pass = document.getElementById('su-pass').value;
+  if (!name || !email || !pass) return showError('Please fill in all fields.');
+  if (DB.users.find(u => u.email === email)) return showError('Email already registered. Please log in.');
+  const user = {
+    id: 'u' + Date.now(), name, email, pass,
+    role: selectedRole,
+    grade: selectedRole === 'kid' ? parseInt(document.getElementById('su-grade').value) : null,
+    kids: selectedRole === 'parent' ? [...SAMPLE_KIDS] : [],
+    stars: selectedRole === 'kid' ? 3 : 0,
+    streak: 1,
+    subjects: { science:0, math:0, english:0, social:0 },
+    quizScores: [],
+    avatar: '🦊',
+    createdAt: new Date().toISOString()
+  };
+  DB.users.push(user); saveDB();
+  loginUser(user);
+}
+
+function doLogin() {
+  const email = document.getElementById('li-email').value.trim();
+  const pass = document.getElementById('li-pass').value;
+  const user = DB.users.find(u => u.email === email && u.pass === pass);
+  if (!user) return showError('Email or password is incorrect.');
+  loginUser(user);
+}
+
+// ==============================
+// GOOGLE SIGN-IN
+// ==============================
+
+// ⚠️  Replace with your Google OAuth Client ID from:
+//     https://console.cloud.google.com → APIs & Services → Credentials → Create OAuth 2.0 Client ID
+//     Authorised origins: http://localhost, https://yourdomain.com
+//     Authorised redirect URIs: https://yourdomain.com
+const GOOGLE_CLIENT_ID = '271559759837-tuib5c6c87duqplbiljcggm6hjk6fss8.apps.googleusercontent.com';
+
+let googleAuthContext = 'signup'; // 'signup' | 'login'
+
+// Called by the "Continue with Google" buttons
+function doGoogleAuth(context) {
+  googleAuthContext = context || 'signup';
+  // Update chooser role note
+  const roleLabel = document.getElementById('gc-role-label');
+  const roleNote  = document.getElementById('gc-role-note');
+  if (roleLabel) roleLabel.textContent = selectedRole === 'kid' ? 'Student' : 'Parent';
+  if (roleNote)  roleNote.style.display = (context === 'login') ? 'none' : 'block';
+  // Open account chooser
+  document.getElementById('google-chooser-overlay').classList.add('open');
+}
+
+function closeGoogleChooser(e) {
+  if (!e || e.target === document.getElementById('google-chooser-overlay') || e.target.classList.contains('gc-close')) {
+    document.getElementById('google-chooser-overlay').classList.remove('open');
+  }
+}
+
+// Called when user picks an account from the chooser
+function completeGoogleAuth({ name, email, avatar, color }) {
+  closeGoogleChooser();
+
+  // ── PRODUCTION: replace this block with real Google Identity Services flow ──
+  // When GOOGLE_CLIENT_ID is set, use:
+  //   google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
+  //   google.accounts.id.prompt();
+  // Then in handleGoogleCredential(response):
+  //   const { credential } = response;   // This is the ID token (JWT)
+  //   Decode with: const payload = JSON.parse(atob(credential.split('.')[1]));
+  //   payload.name, payload.email, payload.picture → create/login user
+
+  const role  = googleAuthContext === 'login'
+    ? (DB.users.find(u => u.email === email)?.role || 'parent')
+    : (selectedRole || 'parent');
+
+  const grade = (role === 'kid')
+    ? parseInt(document.getElementById('su-grade')?.value || '5')
+    : null;
+
+  const existing = DB.users.find(u => u.email === email);
+  if (existing) {
+    loginUser(existing);
+    return;
+  }
+
+  // New Google user — create profile
+  const newUser = {
+    id: 'g_' + Date.now(),
+    name,
+    email,
+    pass: '',
+    authProvider: 'google',
+    avatar: avatar || '🌟',
+    role,
+    grade,
+    kids: role === 'parent' ? [...SAMPLE_KIDS] : [],
+    stars: 0,
+    streak: 0,
+    subjects: { science: 0, math: 0, english: 0, social: 0 },
+    quizScores: [],
+    createdAt: new Date().toISOString()
+  };
+  DB.users.push(newUser);
+  saveDB();
+  loginUser(newUser);
+}
+
+// Initialise real Google Identity Services when client ID is configured
+function initGoogleSignIn() {
+  if (GOOGLE_CLIENT_ID.includes('YOUR_GOOGLE') || typeof google === 'undefined') return;
+  try {
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: (response) => {
+        // Decode the JWT credential to get user info
+        const payload = JSON.parse(atob(response.credential.split('.')[1]));
+        completeGoogleAuth({
+          name:   payload.name,
+          email:  payload.email,
+          avatar: payload.given_name?.[0]?.toUpperCase() || 'G',
+          color:  '#4285F4'
+        });
+      },
+      auto_select: false,
+      cancel_on_tap_outside: true
+    });
+    // Show One Tap prompt if user is not already logged in
+    if (!APP.currentUser) google.accounts.id.prompt();
+  } catch(e) {
+    console.warn('Google Sign-In init:', e.message);
+  }
+}
+
+// Try to init after GSI script loads
+window.addEventListener('load', () => setTimeout(initGoogleSignIn, 500));
+
+function loginUser(user) {
+  APP.currentUser = user;
+  closeAuth();
+  if (user.role === 'parent') renderParentDash();
+  else renderKidDash();
+}
+
+function logout() {
+  APP.currentUser = null;
+  APP.chatMessages = [];
+  navigate('landing');
+  closeMenus();
+}
+
+// ==============================
+// NAVIGATION
+// ==============================
+function navigate(page) {
+  APP.currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  document.getElementById('page-' + page.replace('-dash','-dash')).classList.remove('hidden');
+
+  // Map names
+  const map = { 'kid-dash':'kid-dash', 'parent-dash':'parent-dash', 'tutor':'tutor', 'landing':'landing' };
+  const id = 'page-' + (map[page] || page);
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('hidden');
+  closeMenus();
+}
+
+function openTutor(subj) {
+  APP.currentSubject = subj;
+  navigate('tutor');
+  initTutor();
+  setSubject(subj);
+}
+
+function renderKidDash() {
+  navigate('kid-dash');
+  const u = APP.currentUser;
+  document.getElementById('kid-greeting-name').textContent = u.name;
+  document.getElementById('kid-avatar-tb').textContent = u.avatar || u.name[0];
+  document.getElementById('kid-name-tb').textContent = u.name;
+  document.getElementById('tutor-avatar-tb').textContent = u.avatar || u.name[0];
+  document.getElementById('tutor-name-tb').textContent = u.name;
+  document.getElementById('kid-streak').textContent = u.streak || 1;
+
+  // Progress cards
+  const pr = document.getElementById('progress-row');
+  const subjData = u.subjects || { science:0, math:0, english:0, social:0 };
+  pr.innerHTML = Object.entries(SUBJECTS).map(([k,s]) =>
+    `<div class="prog-card" onclick="openTutor('${k}')">
+      <span class="subj-icon">${s.emoji}</span>
+      <h4>${s.label}</h4>
+      <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:${subjData[k]||0}%;background:${s.bg}"></div></div>
+      <div class="stars">${Math.round((subjData[k]||0)/10)} ⭐ / 10</div>
+    </div>`
+  ).join('');
+
+  // Recent
+  const rb = document.getElementById('recent-box');
+  if (!u.quizScores || u.quizScores.length === 0) {
+    rb.innerHTML = '<p style="padding:20px;text-align:center;color:#aaa;font-weight:700">No activity yet — start a lesson! 🚀</p>';
+  } else {
+    rb.innerHTML = u.quizScores.slice(-4).reverse().map(q => {
+      const s = SUBJECTS[q.subj] || SUBJECTS.science;
+      return `<div class="recent-item">
+        <div class="recent-icon" style="background:${s.bg}">${s.emoji}</div>
+        <div class="recent-info"><h5>${s.label} Quiz</h5><p>${q.date || 'Recently'}</p></div>
+        <div class="recent-stars">🏆 ${q.score}/${q.total}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Achievements
+  const ar = document.getElementById('achievements-row');
+  ar.innerHTML = BADGES.map(b =>
+    `<div class="badge ${b.earned?'':'locked'}">
+      <span class="badge-icon">${b.icon}</span>
+      <div class="badge-info"><h5>${b.name}</h5><p>${b.desc}</p></div>
+    </div>`
+  ).join('');
+}
+
+function renderParentDash() {
+  navigate('parent-dash');
+  const u = APP.currentUser;
+  document.getElementById('parent-avatar-tb').textContent = u.avatar || u.name[0];
+  document.getElementById('parent-name-tb').textContent = u.name;
+
+  // Kids section
+  const ks = document.getElementById('kids-section');
+  const kids = u.kids || [];
+  const kidColors = ['linear-gradient(135deg,#5BC4FF,#A78BFA)','linear-gradient(135deg,#52DBA8,#0EB58A)','linear-gradient(135deg,#FF7B6B,#DC2626)'];
+  ks.innerHTML = kids.map((k,i) => {
+    const totalStars = k.stars || 0;
+    const avgProg = Math.round(Object.values(k.subjects||{}).reduce((a,b)=>a+b,0)/4);
+    return `<div class="kid-profile-card">
+      <div class="kpc-top">
+        <div class="kid-av" style="background:${kidColors[i%3]}">${k.avatar}</div>
+        <div class="kid-meta"><h4>${k.name}</h4><p>Grade ${k.grade} · ${k.streak||1} day streak 🔥</p></div>
+      </div>
+      <div class="kpc-stats">
+        <div class="kpc-stat"><div class="stat-val">${totalStars}</div><div class="stat-key">Stars</div></div>
+        <div class="kpc-stat"><div class="stat-val">${avgProg}%</div><div class="stat-key">Avg Progress</div></div>
+        <div class="kpc-stat"><div class="stat-val">${(k.quizScores||[]).length}</div><div class="stat-key">Quizzes</div></div>
+      </div>
+      <div class="kpc-subjs">
+        ${Object.entries(k.subjects||{}).map(([s,v])=>`<span class="kpc-subj-tag" style="background:${SUBJECTS[s].tagColor};color:${parseInt(v)>60?'#1E1B4B':'white'}">${SUBJECTS[s].emoji} ${v}%</span>`).join('')}
+      </div>
+      <div class="kpc-actions">
+        <button class="btn btn-sm" style="background:var(--science-g);color:white" onclick="alert('Detailed report for ${k.name} would open here 📊')">View Report</button>
+        <button class="btn-outline-sm" onclick="alert('Messaging ${k.name} to study would open here 📩')">Send Reminder</button>
+      </div>
+    </div>`;
+  }).join('') + `<div class="add-kid-card" onclick="showAddKid()">
+    <div class="plus-icon">+</div>
+    <p>Add a Child</p>
+  </div>`;
+
+  // Alerts
+  const ab = document.getElementById('alerts-box');
+  const alerts = [
+    { icon:'📉', msg:'<strong>Alex</strong> scored below 70% on the last 2 Math quizzes. Consider extra practice.' },
+    { icon:'🎉', msg:'<strong>Jamie</strong> earned 3 new Science achievements this week! Great momentum.' },
+    { icon:'⏰', msg:'<strong>Alex</strong> hasn\'t logged in for 2 days. A gentle reminder might help.' }
+  ];
+  ab.innerHTML = `<h3>⚠️ Alerts & Highlights</h3>` + alerts.map(a =>
+    `<div class="alert-item"><span class="ai">${a.icon}</span><p>${a.msg}</p></div>`
+  ).join('');
+
+  // Convos
+  const cl = document.getElementById('conv-list');
+  cl.innerHTML = SAMPLE_CONVOS.map(c => {
+    const s = SUBJECTS[c.subj];
+    return `<div class="conv-item">
+      <div class="conv-subj-icon" style="background:${s.bg}">${s.emoji}</div>
+      <div class="conv-info">
+        <h5>${c.kid} · ${s.label}</h5>
+        <p>"${c.topic}"</p>
+      </div>
+      <div class="conv-meta">
+        <div class="time">${c.time}</div>
+        ${c.score ? `<div class="score-badge">Quiz: ${c.score}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Conv filter
+  const cf = document.getElementById('conv-filter');
+  cf.innerHTML = ['All Kids', ...kids.map(k=>k.name)].map(n=>`<option>${n}</option>`).join('');
+}
+
+// ==============================
+// TUTOR
+// ==============================
+function initTutor() {
+  const u = APP.currentUser;
+  if (!u) return;
+  document.getElementById('tutor-avatar-tb').textContent = u.avatar || u.name[0];
+  document.getElementById('tutor-name-tb').textContent = u.name;
+  const grade = u.grade || 5;
+  document.getElementById('grade-pick').value = grade;
+  APP.chatMessages = [];
+  APP.sessionStars = 2;
+  document.getElementById('session-stars').textContent = '⭐⭐';
+  greetFromCosmo();
+}
+
+function setSubject(subj) {
+  APP.currentSubject = subj;
+  const s = SUBJECTS[subj];
+  document.getElementById('subj-badge').style.background = s.bg;
+  document.getElementById('subj-badge').textContent = s.emoji + ' ' + s.label + ' Mode';
+  document.getElementById('chat-title').textContent = s.emoji + ' ' + s.label + ' Chat — Grade ' + (document.getElementById('grade-pick')?.value || 5);
+  document.getElementById('cosmo-tip').innerHTML = `<strong>${TIPS[subj]}</strong>`;
+
+  // Update tabs
+  document.querySelectorAll('.subj-mini-btn').forEach((b,i) => {
+    const keys = ['science','math','english','social'];
+    b.classList.toggle('active', keys[i] === subj);
+    if (keys[i] === subj) { b.style.background = s.bg; b.style.color='white'; b.style.borderColor='transparent'; }
+    else { b.style.background = 'white'; b.style.color = 'var(--dark)'; b.style.borderColor = 'var(--border)'; }
+  });
+
+  renderSuggestions();
+
+  if (APP.quizMode) {
+    APP.quizMode = false;
+    document.getElementById('quiz-view').classList.add('hidden');
+    document.getElementById('chat-view').style.display = 'flex';
+    document.getElementById('quiz-toggle-btn').classList.remove('active');
+  }
+
+  APP.chatMessages = [];
+  document.getElementById('msgs-area').innerHTML = '';
+  greetFromCosmo();
+}
+
+document.getElementById('grade-pick').addEventListener('change', function() {
+  const s = SUBJECTS[APP.currentSubject];
+  document.getElementById('chat-title').textContent = s.emoji + ' ' + s.label + ' Chat — Grade ' + this.value;
+  APP.chatMessages = [];
+  document.getElementById('msgs-area').innerHTML = '';
+  greetFromCosmo();
+});
+
+function greetFromCosmo() {
+  const s = SUBJECTS[APP.currentSubject];
+  const grade = document.getElementById('grade-pick')?.value || 5;
+  const name = APP.currentUser?.name || 'there';
+  const msg = `Hi ${name}! 👋 I'm **Cosmo**, your friendly tutor! Let's explore **${s.label}** together for Grade ${grade}.\n\nAsk me anything — there are no silly questions here! ${s.emoji}`;
+  addBotMsg(msg);
+}
+
+function renderSuggestions() {
+  const bar = document.getElementById('suggestions-bar');
+  bar.innerHTML = (SUGGESTIONS[APP.currentSubject] || []).map(q =>
+    `<button class="sugg-chip" onclick="useChip('${q}')">${q}</button>`
+  ).join('');
+}
+
+function useChip(text) {
+  document.getElementById('chat-input').value = text;
+  sendMsg();
+}
+
+function addBotMsg(text) {
+  APP.chatMessages.push({ role:'assistant', content:text });
+  renderMsg('bot', text);
+}
+function addUserMsgToUI(text) {
+  APP.chatMessages.push({ role:'user', content:text });
+  renderMsg('user', text);
+}
+
+function renderMsg(role, text) {
+  const area = document.getElementById('msgs-area');
+  const s = SUBJECTS[APP.currentSubject];
+  const div = document.createElement('div');
+  div.className = 'msg' + (role === 'user' ? ' user-msg' : '');
+
+  const av = document.createElement('div');
+  av.className = 'msg-av';
+  av.textContent = role === 'user' ? (APP.currentUser?.avatar || '👤') : '🤖';
+
+  const bub = document.createElement('div');
+  bub.className = 'msg-bub';
+  const formatted = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+  if (role === 'bot') {
+    bub.innerHTML = `<span class="stag" style="background:${s.tagColor};color:${s.tagColor==='#FFD93D'?'#7A5700':'white'}">${s.emoji} ${s.label}</span><br>${formatted}`;
+  } else { bub.innerHTML = formatted; }
+
+  div.appendChild(av); div.appendChild(bub);
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function showTyping() {
+  const area = document.getElementById('msgs-area');
+  const div = document.createElement('div');
+  div.className = 'msg'; div.id = 'typing-ind';
+  const av = document.createElement('div'); av.className = 'msg-av'; av.textContent = '🤖';
+  const bub = document.createElement('div'); bub.className = 'msg-bub';
+  bub.innerHTML = '<div class="typing-bub"><span></span><span></span><span></span></div>';
+  div.appendChild(av); div.appendChild(bub);
+  area.appendChild(div); area.scrollTop = area.scrollHeight;
+}
+function removeTyping() { const t = document.getElementById('typing-ind'); if(t) t.remove(); }
+
+async function sendMsg() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text || APP.waiting) return;
+  input.value = ''; input.style.height = 'auto';
+  APP.waiting = true;
+  document.getElementById('send-btn').disabled = true;
+
+  addUserMsgToUI(text);
+  setMood('thinking');
+  showTyping();
+
+  const grade = document.getElementById('grade-pick').value;
+  const s = SUBJECTS[APP.currentSubject];
+  const systemPrompt = `You are Cosmo, a warm, enthusiastic AI tutor for kids grades 3–9. You are currently teaching **${s.label}** to a Grade ${grade} student named ${APP.currentUser?.name || 'there'}.
+
+Rules:
+- Use age-appropriate language for Grade ${grade}
+- Be encouraging — celebrate effort, not just correct answers
+- Use emojis naturally (not every sentence)
+- Bold key vocabulary terms using **term**
+- Break concepts into simple steps with relatable analogies
+- End every response with one engaging follow-up question or fun fact
+- Keep responses to 3–6 sentences unless explaining a multi-step concept
+- NEVER make students feel bad for not knowing something`;
+
+  const payload = APP.chatMessages.slice(-10);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, system:systemPrompt, messages:payload })
+    });
+    const data = await res.json();
+    removeTyping();
+    const reply = data?.content?.[0]?.text || 'Oops! Something went wrong. Try again! 😊';
+    addBotMsg(reply);
+    setMood('happy');
+    awardStar();
+    cosmoReact();
+    logConversation(text, reply);
+  } catch(e) {
+    removeTyping();
+    addBotMsg('Hmm, I had trouble connecting! Check your internet and try again. 🌐');
+    setMood('idle');
+  }
+
+  APP.waiting = false;
+  document.getElementById('send-btn').disabled = false;
+}
+
+function logConversation(q, a) {
+  const u = APP.currentUser;
+  if (!u) return;
+  const subj = APP.currentSubject;
+  u.subjects = u.subjects || {};
+  u.subjects[subj] = Math.min(100, (u.subjects[subj] || 0) + 3);
+  saveDB();
+}
+
+function handleInputKey(e) {
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+}
+
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+function clearChat() {
+  APP.chatMessages = [];
+  document.getElementById('msgs-area').innerHTML = '';
+  greetFromCosmo();
+}
+
+// ==============================
+// COSMO REACTIONS
+// ==============================
+function cosmoReact() {
+  const av = document.getElementById('cosmo-av');
+  av.classList.remove('bounce-anim');
+  void av.offsetWidth;
+  av.classList.add('bounce-anim');
+}
+
+function setMood(mood) {
+  const pool = MOODS[mood] || MOODS.idle;
+  document.getElementById('cosmo-status').textContent = pool[Math.floor(Math.random()*pool.length)];
+}
+
+function awardStar() {
+  APP.sessionStars = Math.min(APP.sessionStars + 1, 10);
+  const filled = '⭐'.repeat(Math.min(APP.sessionStars, 5));
+  document.getElementById('session-stars').textContent = filled;
+  if (APP.currentUser) { APP.currentUser.stars = (APP.currentUser.stars||0) + 1; saveDB(); }
+  if (APP.sessionStars % 5 === 0) confetti();
+}
+
+// ==============================
+// QUIZ MODE
+// ==============================
+function toggleQuizMode() {
+  APP.quizMode = !APP.quizMode;
+  document.getElementById('quiz-toggle-btn').classList.toggle('active', APP.quizMode);
+  document.getElementById('chat-view').style.display = APP.quizMode ? 'none' : 'flex';
+  document.getElementById('quiz-view').classList.toggle('hidden', !APP.quizMode);
+  if (APP.quizMode) generateQuiz();
+}
+
+async function generateQuiz() {
+  const panel = document.getElementById('quiz-panel');
+  const s = SUBJECTS[APP.currentSubject];
+  const grade = document.getElementById('grade-pick').value;
+  panel.innerHTML = `<div class="quiz-loading"><div class="spinner"></div><p style="font-weight:700;color:#888">Generating your ${s.label} quiz… ${s.emoji}</p></div>`;
+
+  const prompt = `Generate a 5-question multiple choice quiz for Grade ${grade} ${s.label}.
+Return ONLY a valid JSON array (no markdown, no preamble) with this exact structure:
+[{"q":"question text","options":["A","B","C","D"],"answer":0,"explanation":"brief friendly explanation"}]
+answer is the 0-based index of the correct option. Make questions engaging and age-appropriate for Grade ${grade}.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000,
+        messages:[{ role:'user', content:prompt }] })
+    });
+    const data = await res.json();
+    let raw = data?.content?.[0]?.text || '[]';
+    raw = raw.replace(/```json|```/g,'').trim();
+    APP.quizData = JSON.parse(raw);
+    APP.quizIdx = 0; APP.quizScore = 0;
+    renderQuizQuestion();
+  } catch(e) {
+    panel.innerHTML = `<div class="quiz-loading"><p style="font-weight:700;color:#888">Couldn't generate quiz. Check connection and try again 🌐</p><button class="quiz-gen-btn" onclick="generateQuiz()">Try Again</button></div>`;
+  }
+}
+
+function renderQuizQuestion() {
+  const panel = document.getElementById('quiz-panel');
+  if (!APP.quizData || APP.quizIdx >= APP.quizData.length) { renderQuizResult(); return; }
+
+  const q = APP.quizData[APP.quizIdx];
+  const pct = Math.round((APP.quizIdx / APP.quizData.length) * 100);
+  const letters = ['A','B','C','D'];
+
+  panel.innerHTML = `
+    <div class="quiz-header">
+      <h3>Question ${APP.quizIdx+1} of ${APP.quizData.length}</h3>
+      <p>${SUBJECTS[APP.currentSubject].emoji} ${SUBJECTS[APP.currentSubject].label} · Grade ${document.getElementById('grade-pick').value}</p>
+    </div>
+    <div class="quiz-progress"><div class="quiz-progress-fill" style="width:${pct}%"></div></div>
+    <div class="quiz-card">
+      <div class="quiz-q-text">${q.q}</div>
+      <div class="quiz-options" id="quiz-opts">
+        ${q.options.map((opt,i)=>`
+          <button class="quiz-opt" onclick="selectAnswer(${i})" id="qopt-${i}">
+            <span class="quiz-opt-letter">${letters[i]}</span>${opt}
+          </button>`).join('')}
+      </div>
+    </div>
+    <div id="quiz-fb"></div>
+    <div id="quiz-next-wrap"></div>
+  `;
+}
+
+function selectAnswer(idx) {
+  const q = APP.quizData[APP.quizIdx];
+  const correct = q.answer;
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach((o,i) => {
+    o.disabled = true;
+    if (i === correct) o.classList.add('correct');
+    if (i === idx && i !== correct) o.classList.add('wrong');
+    o.querySelector('.quiz-opt-letter').textContent = ['A','B','C','D'][i];
+  });
+
+  const isCorrect = idx === correct;
+  if (isCorrect) APP.quizScore++;
+
+  const fb = document.getElementById('quiz-fb');
+  fb.innerHTML = `<div class="quiz-feedback ${isCorrect?'good':'bad'}">
+    ${isCorrect ? '🎉 Correct! ' : '❌ Not quite. '}<strong>${q.explanation}</strong>
+  </div>`;
+
+  const nw = document.getElementById('quiz-next-wrap');
+  const isLast = APP.quizIdx === APP.quizData.length - 1;
+  nw.innerHTML = `<button class="quiz-next-btn" onclick="${isLast?'renderQuizResult()':'nextQuizQ()'}">
+    ${isLast ? '🏁 See My Results!' : 'Next Question →'}
+  </button>`;
+
+  if (isCorrect) cosmoReact();
+}
+
+function nextQuizQ() {
+  APP.quizIdx++;
+  renderQuizQuestion();
+}
+
+function renderQuizResult() {
+  const panel = document.getElementById('quiz-panel');
+  const total = APP.quizData?.length || 5;
+  const pct = Math.round((APP.quizScore / total) * 100);
+  const emoji = pct >= 80 ? '🏆' : pct >= 60 ? '😊' : '💪';
+  const msg = pct >= 80 ? 'Amazing work!' : pct >= 60 ? 'Good effort!' : 'Keep practicing!';
+
+  // Save quiz score
+  if (APP.currentUser) {
+    const score = { subj: APP.currentSubject, score: APP.quizScore, total, date: 'Today' };
+    APP.currentUser.quizScores = APP.currentUser.quizScores || [];
+    APP.currentUser.quizScores.push(score);
+    APP.currentUser.subjects[APP.currentSubject] = Math.min(100, (APP.currentUser.subjects[APP.currentSubject]||0) + APP.quizScore * 2);
+    saveDB();
+  }
+
+  panel.innerHTML = `<div class="quiz-result">
+    <div class="big-score">${emoji}</div>
+    <div style="font-family:'Fredoka One',cursive;font-size:3rem;color:var(--violet)">${APP.quizScore}/${total}</div>
+    <h3>${msg}</h3>
+    <p>You scored ${pct}% on your ${SUBJECTS[APP.currentSubject].label} quiz!</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="quiz-gen-btn" onclick="APP.quizIdx=0;APP.quizScore=0;renderQuizQuestion()">Retry Quiz 🔄</button>
+      <button class="quiz-next-btn" onclick="generateQuiz()">New Quiz ✨</button>
+      <button class="quiz-next-btn" style="background:linear-gradient(135deg,#5BC4FF,#A78BFA)" onclick="toggleQuizMode()">Back to Chat 💬</button>
+    </div>
+  </div>`;
+
+  if (pct >= 80) { confetti(); awardStar(); awardStar(); }
+}
+
+// ==============================
+// ADD KID
+// ==============================
+let selectedAvatar = '🦊';
+function showAddKid() { document.getElementById('add-kid-overlay').classList.remove('hidden'); }
+function closeAddKid() { document.getElementById('add-kid-overlay').classList.add('hidden'); }
+function pickAvatar(el) {
+  document.querySelectorAll('.av-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedAvatar = el.dataset.av;
+}
+function saveKid() {
+  const name = document.getElementById('kid-name-inp').value.trim();
+  const grade = parseInt(document.getElementById('kid-grade-inp').value);
+  if (!name) return alert('Please enter a name!');
+  const kid = { id:'k'+Date.now(), name, grade, avatar:selectedAvatar, stars:0, streak:0,
+    subjects:{science:0,math:0,english:0,social:0}, quizScores:[] };
+  APP.currentUser.kids = APP.currentUser.kids || [];
+  APP.currentUser.kids.push(kid);
+  saveDB();
+  closeAddKid();
+  renderParentDash();
+  confetti();
+}
+
+// ==============================
+// UTILS
+// ==============================
+function toggleMenu(id) {
+  document.querySelectorAll('.user-menu').forEach(m => { if(m.id!==id) m.classList.add('hidden'); });
+  document.getElementById(id).classList.toggle('hidden');
+}
+function closeMenus() { document.querySelectorAll('.user-menu').forEach(m => m.classList.add('hidden')); }
+document.addEventListener('click', e => { if (!e.target.closest('.user-pill') && !e.target.closest('.user-menu')) closeMenus(); });
+
+function confetti() {
+  const emojis = ['🎉','⭐','🌟','🎊','✨','💫','🚀','🏆'];
+  Array.from({length:12}).forEach((_,i) => {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'confetti-el';
+      el.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+      el.style.left = (20+Math.random()*60)+'%';
+      el.style.top = (30+Math.random()*20)+'%';
+      el.style.setProperty('--dx', (Math.random()*200-100)+'px');
+      el.style.setProperty('--dy', (Math.random()*-200-100)+'px');
+      el.style.setProperty('--rot', (Math.random()*720-360)+'deg');
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1900);
+    }, i*80);
+  });
+}
+
+// ==============================
+// STRIPE INTEGRATION
+// ==============================
+
+// ⚠️  Replace with your real Stripe publishable key from https://dashboard.stripe.com/apikeys
+// Test key starts with: pk_test_51...   Live key: pk_live_51...
+const STRIPE_PUBLISHABLE_KEY = 'pk_test_YOUR_STRIPE_PUBLISHABLE_KEY';
+
+// Your Stripe Price IDs — create in Stripe Dashboard → Products → Add Product
+// Copy the price_xxx ID for each pricing tier
+const STRIPE_PRICES = {
+  solo_monthly:   'price_SOLO_MONTHLY_ID',
+  solo_annual:    'price_SOLO_ANNUAL_ID',
+  family_monthly: 'price_FAMILY_MONTHLY_ID',
+  family_annual:  'price_FAMILY_ANNUAL_ID',
+  pro_monthly:    'price_PRO_MONTHLY_ID',
+  pro_annual:     'price_PRO_ANNUAL_ID',
+};
+
+let stripe = null;
+let stripeCardElement = null;
+let payPlan  = 'family';
+let payCycle = 'monthly';
+
+const PAY_DETAILS = {
+  solo: {
+    monthly: { price:'$5.99', desc:'100 msgs/day · All subjects · Progress tracking · 1 child' },
+    annual:  { price:'$4.99', desc:'100 msgs/day · All subjects · Billed $59.88/yr' }
+  },
+  family: {
+    monthly: { price:'$19', desc:'Unlimited tutoring · 3 kids · All subjects' },
+    annual:  { price:'$13', desc:'Unlimited tutoring · 3 kids · Billed $156/yr' }
+  },
+  pro: {
+    monthly: { price:'$35', desc:'Everything + 6 kids · Priority support · PDF reports' },
+    annual:  { price:'$23', desc:'Everything + 6 kids · Billed $276/yr' }
+  }
+};
+
+function initStripe() {
+  if (stripe) return;
+  try {
+    stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+    const elements = stripe.elements({
+      fonts: [{ cssSrc:'https://fonts.googleapis.com/css2?family=Nunito:wght@600&display=swap' }]
+    });
+
+    // ── Card Element ─────────────────────────────────────────────────────────
+    stripeCardElement = elements.create('card', {
+      style: {
+        base: { fontFamily:"'Nunito',sans-serif", fontSize:'15px', fontWeight:'600',
+                color:'#1E1B4B', '::placeholder':{ color:'#B0C4D8' } },
+        invalid: { color:'#FF7B6B' }
+      }
+    });
+    stripeCardElement.mount('#stripe-card-element');
+    stripeCardElement.on('change', (e) => {
+      const errEl = document.getElementById('payment-error-msg');
+      if (e.error) { errEl.textContent = e.error.message; errEl.classList.remove('hidden'); }
+      else errEl.classList.add('hidden');
+    });
+
+    // ── Payment Request Button (Apple Pay + Google Pay) ───────────────────────
+    // Stripe automatically shows Apple Pay on Safari/iOS and Google Pay on Chrome/Android.
+    // Requirements:
+    //   • Your domain must be served over HTTPS
+    //   • For Apple Pay: register your domain in Stripe Dashboard → Settings → Payment methods → Apple Pay
+    //   • For Google Pay: no extra setup needed — Stripe handles it
+    //   • Test cards: https://stripe.com/docs/testing#international-cards
+    const getPriceAmount = () => {
+      const d = PAY_DETAILS[payPlan][payCycle];
+      const num = parseInt(d.price.replace('$',''));
+      // Convert to cents; annual prices billed yearly
+      return payCycle === 'annual' ? num * 12 * 100 : num * 100;
+    };
+
+    const paymentRequest = stripe.paymentRequest({
+      country: 'US',
+      currency: 'usd',
+      total: {
+        label: `Cosmo Learns ${payPlan === 'pro' ? 'Family Pro' : 'Family'} Plan`,
+        amount: getPriceAmount(),
+        pending: true   // true = final amount shown at native sheet
+      },
+      requestPayerName:  true,
+      requestPayerEmail: true,
+    });
+
+    const prBtn = elements.create('paymentRequestButton', {
+      paymentRequest,
+      style: {
+        paymentRequestButton: {
+          type:   'subscribe',   // shows "Subscribe with Apple/Google Pay"
+          theme:  'dark',
+          height: '48px',
+        }
+      }
+    });
+
+    // Check if Apple Pay / Google Pay is available in this browser
+    paymentRequest.canMakePayment().then((result) => {
+      const prContainer  = document.getElementById('payment-request-btn');
+      const walletNote   = document.getElementById('wallet-unavailable');
+      const orDivider    = document.getElementById('pay-or-divider');
+
+      if (result) {
+        // ✅ Wallet available — mount the button
+        prBtn.mount('#payment-request-btn');
+        prContainer.classList.remove('pr-hidden');
+        if (walletNote) walletNote.style.display = 'none';
+
+        // Update amount when plan/cycle changes
+        const updatePR = () => {
+          paymentRequest.update({
+            total: {
+              label: `Cosmo Learns ${payPlan === 'pro' ? 'Family Pro' : 'Family'} (${payCycle})`,
+              amount: getPriceAmount()
+            }
+          });
+        };
+        // Patch plan/cycle selectors to also update PR
+        const _origSelectPlan  = window.selectPayPlan;
+        const _origSelectCycle = window.selectPayCycle;
+        window.selectPayPlan  = (p) => { _origSelectPlan(p);  updatePR(); };
+        window.selectPayCycle = (c) => { _origSelectCycle(c); updatePR(); };
+
+        // Handle Apple Pay / Google Pay payment
+        paymentRequest.on('paymentmethod', async (ev) => {
+          // ── DEMO MODE ────────────────────────────────────────────────────────
+          if (STRIPE_PUBLISHABLE_KEY.includes('YOUR_STRIPE')) {
+            ev.complete('success');
+            handlePaymentSuccess({ plan:payPlan, cycle:payCycle });
+            return;
+          }
+
+          // ── REAL FLOW ────────────────────────────────────────────────────────
+          // 1. Send paymentMethod to your backend to create subscription
+          try {
+            const resp = await fetch('/api/create-subscription', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                paymentMethodId: ev.paymentMethod.id,
+                priceId:  STRIPE_PRICES[`${payPlan}_${payCycle}`],
+                email:    ev.payerEmail,
+                name:     ev.payerName,
+                userId:   APP.currentUser?.id || null,
+                plan:     payPlan,
+                cycle:    payCycle
+              })
+            });
+            const result = await resp.json();
+            if (result.error) {
+              ev.complete('fail');
+            } else if (result.requiresAction) {
+              // 3D Secure
+              const { error } = await stripe.confirmCardPayment(result.clientSecret, { payment_method: ev.paymentMethod.id });
+              if (error) { ev.complete('fail'); }
+              else { ev.complete('success'); handlePaymentSuccess({ plan:payPlan, cycle:payCycle, subscriptionId:result.subscriptionId }); }
+            } else {
+              ev.complete('success');
+              handlePaymentSuccess({ plan:payPlan, cycle:payCycle, subscriptionId:result.subscriptionId });
+            }
+          } catch {
+            ev.complete('fail');
+          }
+        });
+      } else {
+        // ❌ Wallet not available in this browser/device
+        prContainer.classList.add('pr-hidden');
+        if (walletNote) walletNote.style.display = 'block';
+        if (orDivider)  orDivider.textContent = 'PAY WITH CARD';
+      }
+    });
+
+  } catch(e) {
+    console.warn('Stripe init — running in demo mode:', e.message);
+  }
+}
+
+function openPayment(planName) {
+  payPlan  = planName || 'family';
+  payCycle = 'monthly';
+  document.getElementById('payment-overlay').classList.remove('hidden');
+  document.getElementById('payment-success').classList.add('hidden');
+  document.getElementById('payment-form-wrap').classList.remove('hidden');
+  document.getElementById('payment-error-msg').classList.add('hidden');
+  if (APP.currentUser?.email) document.getElementById('pay-email').value = APP.currentUser.email;
+  selectPayPlan(payPlan);
+  setTimeout(initStripe, 120);
+}
+
+function closePayment() { document.getElementById('payment-overlay').classList.add('hidden'); }
+
+function closePaymentSuccess() {
+  closePayment();
+  if (APP.currentUser?.role === 'parent') renderParentDash();
+  else renderKidDash();
+}
+
+function selectPayPlan(plan) {
+  payPlan = plan;
+  document.getElementById('pay-solo-btn').classList.toggle('active',   plan==='solo');
+  document.getElementById('pay-family-btn').classList.toggle('active', plan==='family');
+  document.getElementById('pay-pro-btn').classList.toggle('active',    plan==='pro');
+  updatePaySummary();
+}
+
+function selectPayCycle(cycle) {
+  payCycle = cycle;
+  document.getElementById('pay-monthly-btn').classList.toggle('active', cycle==='monthly');
+  document.getElementById('pay-annual-btn').classList.toggle('active', cycle==='annual');
+  updatePaySummary();
+}
+
+function updatePaySummary() {
+  const d = PAY_DETAILS[payPlan]?.[payCycle] || PAY_DETAILS.family.monthly;
+  const labels = { solo:'⭐ Solo Plan', family:'👨‍👩‍👧 Family Plan', pro:'🏆 Family Pro' };
+  document.getElementById('ps-name').textContent  = labels[payPlan] || '👨‍👩‍👧 Family Plan';
+  document.getElementById('ps-desc').textContent  = d.desc;
+  document.getElementById('ps-price').textContent = d.price;
+}
+
+async function submitPayment() {
+  const name  = document.getElementById('cardholder-name').value.trim();
+  const email = document.getElementById('pay-email').value.trim();
+  const errEl = document.getElementById('payment-error-msg');
+  const btn   = document.getElementById('pay-submit-btn');
+  const btnTxt= document.getElementById('pay-btn-text');
+
+  if (!name)  { errEl.textContent='Please enter the cardholder name.'; errEl.classList.remove('hidden'); return; }
+  if (!email||!email.includes('@')) { errEl.textContent='Please enter a valid email.'; errEl.classList.remove('hidden'); return; }
+  errEl.classList.add('hidden');
+  btn.disabled = true;
+  btnTxt.innerHTML = '<span class="spinner-sm"></span> Processing…';
+
+  // ── DEMO MODE (Stripe key not yet configured) ──────────────────────────────
+  if (!stripe || STRIPE_PUBLISHABLE_KEY.includes('YOUR_STRIPE')) {
+    await new Promise(r => setTimeout(r, 1800));
+    handlePaymentSuccess({ plan:payPlan, cycle:payCycle });
+    btn.disabled = false; btnTxt.textContent = 'Start Free Trial 🚀';
+    return;
+  }
+
+  // ── REAL STRIPE FLOW ────────────────────────────────────────────────────────
+  // 1. Create PaymentMethod from card element
+  const { paymentMethod, error } = await stripe.createPaymentMethod({
+    type: 'card', card: stripeCardElement,
+    billing_details: { name, email }
+  });
+
+  if (error) {
+    errEl.textContent = error.message; errEl.classList.remove('hidden');
+    btn.disabled = false; btnTxt.textContent = 'Start Free Trial 🚀';
+    return;
+  }
+
+  // 2. Call YOUR backend to create the Stripe Subscription with 7-day trial
+  //    Backend (Firebase Function or Node/Express):
+  //      - stripe.customers.create({ email, name })
+  //      - stripe.paymentMethods.attach(paymentMethod.id, { customer })
+  //      - stripe.subscriptions.create({ customer, items:[{price: priceId}], trial_period_days:7 })
+  //    Returns: { subscriptionId, clientSecret?, status, requiresAction }
+  //
+  // ⚠️  Replace '/api/create-subscription' with your Firebase Function URL:
+  //     https://us-central1-cosmo-learns-prod.cloudfunctions.net/createSubscription
+  try {
+    const priceId = STRIPE_PRICES[`${payPlan}_${payCycle}`];
+    const resp = await fetch('/api/create-subscription', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ paymentMethodId:paymentMethod.id, priceId, email, name,
+                             userId: APP.currentUser?.id||null, plan:payPlan, cycle:payCycle })
+    });
+    const result = await resp.json();
+
+    if (result.error) {
+      errEl.textContent = result.error; errEl.classList.remove('hidden');
+    } else if (result.requiresAction && result.clientSecret) {
+      // 3D Secure authentication
+      const { error:confirmErr } = await stripe.confirmCardPayment(result.clientSecret);
+      if (confirmErr) { errEl.textContent = confirmErr.message; errEl.classList.remove('hidden'); }
+      else handlePaymentSuccess({ plan:payPlan, cycle:payCycle, subscriptionId:result.subscriptionId });
+    } else if (['active','trialing'].includes(result.status)) {
+      handlePaymentSuccess({ plan:payPlan, cycle:payCycle, subscriptionId:result.subscriptionId });
+    }
+  } catch(fetchErr) {
+    errEl.textContent = 'Network error — check your connection and try again.';
+    errEl.classList.remove('hidden');
+  }
+
+  btn.disabled = false; btnTxt.textContent = 'Start Free Trial 🚀';
+}
+
+function handlePaymentSuccess({ plan, cycle, subscriptionId }) {
+  if (APP.currentUser) {
+    APP.currentUser.plan = plan;
+    APP.currentUser.planCycle = cycle;
+    APP.currentUser.subscriptionId = subscriptionId || 'demo_sub_' + Date.now();
+    APP.currentUser.trialEnds = new Date(Date.now() + 7*24*60*60*1000).toISOString();
+    saveDB();
+  }
+  document.getElementById('payment-form-wrap').classList.add('hidden');
+  document.getElementById('payment-success').classList.remove('hidden');
+  document.getElementById('success-plan-pill').textContent =
+    plan === 'family' ? '👨‍👩‍👧 Family Plan' : '🏆 Family Pro';
+  const banner = document.getElementById('upgrade-banner');
+  if (banner) banner.style.display = 'none';
+  confetti();
+}
+
+function handlePlanCTA(plan) {
+  if (APP.currentUser) openPayment(plan);
+  else showAuth('signup');
+}
+
+// ==============================
+// AI MEMORY & LOGIN REVIEW
+// ==============================
+
+function buildKidMemoryContext(user) {
+  const subj = user.subjects || {};
+  const scores = user.quizScores || [];
+
+  const weak   = Object.entries(subj).filter(([,v])=>v<60).sort(([,a],[,b])=>a-b).map(([k])=>k);
+  const strong = Object.entries(subj).filter(([,v])=>v>=75).sort(([,a],[,b])=>b-a).map(([k])=>k);
+  const recentSummary = scores.slice(-6)
+    .map(s=>`${s.subj}: ${s.score}/${s.total} (${Math.round(s.score/s.total*100)}%)`).join(', ');
+  const lastLogin = user.lastLogin ? new Date(user.lastLogin) : null;
+  const daysSince = lastLogin ? Math.floor((Date.now()-lastLogin.getTime())/86400000) : 0;
+
+  return { name:user.name, grade:user.grade||5, streak:user.streak||0, daysSince,
+           subjectProgress:subj, weakSubjects:weak, strongSubjects:strong,
+           recentQuizSummary:recentSummary||'No quizzes yet',
+           totalStars:user.stars||0, lastSubject:user.lastSubject||null };
+}
+
+async function generateMemoryGreeting(user) {
+  const ctx = buildKidMemoryContext(user);
+  const sn  = { science:'Science', math:'Math', english:'English', social:'Social Studies' };
+
+  const prompt = `You are Cosmo, a friendly AI tutor. A student just logged in. Generate a personalised welcome.
+
+Student context:
+- Name: ${ctx.name}, Grade ${ctx.grade}
+- Days since last login: ${ctx.daysSince}
+- Streak: ${ctx.streak} days  
+- Subject progress (0-100): Science:${ctx.subjectProgress.science||0}, Math:${ctx.subjectProgress.math||0}, English:${ctx.subjectProgress.english||0}, Social:${ctx.subjectProgress.social||0}
+- Weak subjects: ${ctx.weakSubjects.map(s=>sn[s]).join(', ')||'none'}
+- Strong subjects: ${ctx.strongSubjects.map(s=>sn[s]).join(', ')||'still building'}
+- Recent quiz scores: ${ctx.recentQuizSummary}
+- Last subject studied: ${ctx.lastSubject ? sn[ctx.lastSubject] : 'none'}
+- Total stars: ${ctx.totalStars}
+
+Return ONLY valid JSON (no markdown):
+{"greeting":"2-sentence warm welcome using their name referencing something specific","memoryLine":"1 sentence about what you remember them working on","reviewSubjects":["subject_key_if_needed"],"reviewReason":"1 short sentence why review is needed or empty string","motivationalTip":"1 encouraging sentence personalised to progress","suggestedTopic":"specific topic to try today"}
+
+Rules: reviewSubjects = subjects below 60% (max 2, exact keys: science/math/english/social). Celebrate streak if >=5. If daysSince>=3, welcome them back warmly. Keep greeting under 40 words.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:400,
+                             messages:[{ role:'user', content:prompt }] })
+    });
+    const data = await res.json();
+    const raw  = data?.content?.[0]?.text?.replace(/```json|```/g,'').trim();
+    return JSON.parse(raw);
+  } catch(e) {
+    const ctx2 = buildKidMemoryContext(user);
+    return {
+      greeting: `Welcome back, ${user.name}! 👋 Cosmo missed you — ready to learn something amazing?`,
+      memoryLine: ctx2.lastSubject ? `Last time we explored ${sn[ctx2.lastSubject]} together.` : 'Ready to discover something new today?',
+      reviewSubjects: ctx2.weakSubjects.slice(0,2),
+      reviewReason: ctx2.weakSubjects.length ? 'A quick review will really boost your confidence!' : '',
+      motivationalTip: 'Every question you ask makes you smarter. Keep going! 🌟',
+      suggestedTopic: 'Start with whatever feels fun today!'
+    };
+  }
+}
+
+async function showMemoryCard(user) {
+  const existing = document.getElementById('memory-card');
+  if (existing) existing.remove();
+  const progressRow = document.getElementById('progress-row');
+  if (!progressRow) return;
+
+  const card = document.createElement('div');
+  card.className = 'memory-card'; card.id = 'memory-card';
+  card.innerHTML = `
+    <div class="memory-card-header">
+      <span class="cosmo-sm">🤖</span>
+      <div><h3>Cosmo Remembers You!</h3><p>Picking up right where you left off…</p></div>
+    </div>
+    <div class="memory-card-body">
+      <div class="memory-loading">
+        <div class="ml-dot"></div><div class="ml-dot"></div><div class="ml-dot"></div>
+        <span style="margin-left:4px">Reviewing your progress…</span>
+      </div>
+    </div>`;
+  progressRow.parentNode.insertBefore(card, progressRow);
+
+  const memory = await generateMemoryGreeting(user);
+
+  const se = { science:'🔬', math:'🔢', english:'📖', social:'🌍' };
+  const sn = { science:'Science', math:'Math', english:'English', social:'Social Studies' };
+  const sc = { science:'science', math:'math', english:'english', social:'social' };
+
+  const reviewChips = (memory.reviewSubjects||[]).map(s =>
+    `<button class="review-chip ${sc[s]}" onclick="openTutor('${s}');dismissMemoryCard()">
+      ${se[s]} Review ${sn[s]}
+    </button>`).join('');
+
+  const progTags = Object.entries(user.subjects||{})
+    .map(([s,v])=>`<span class="memory-tag">${se[s]} ${sn[s]}: ${v}%</span>`).join('');
+
+  card.querySelector('.memory-card-body').innerHTML = `
+    <div class="memory-summary">
+      ${memory.greeting}<br>
+      <span style="color:var(--mid);font-weight:600">${memory.memoryLine}</span>
+    </div>
+    ${memory.reviewSubjects?.length ? `
+      <div style="font-size:.8rem;font-weight:800;color:var(--coral);margin-bottom:8px">📚 ${memory.reviewReason}</div>
+      <div class="review-chips">${reviewChips}</div>` : ''}
+    <div style="font-size:.8rem;font-weight:700;color:#888;margin:${memory.reviewSubjects?.length?'8':'0'}px 0 6px">💡 ${memory.motivationalTip}</div>
+    <div style="margin-bottom:12px">${progTags}</div>
+    ${memory.suggestedTopic ? `
+      <div style="background:#F8F4FF;border-radius:12px;padding:10px 14px;font-size:.82rem;font-weight:700;color:var(--dark);margin-bottom:14px">
+        ✨ Today's suggestion: <strong>${memory.suggestedTopic}</strong>
+      </div>` : ''}
+    <button class="memory-dismiss" onclick="dismissMemoryCard()">Got it, let's go! 🚀</button>`;
+
+  user.lastLogin = new Date().toISOString();
+  saveDB();
+}
+
+function dismissMemoryCard() {
+  const card = document.getElementById('memory-card');
+  if (card) { card.style.animation='fadeOut .3s ease forwards'; setTimeout(()=>card.remove(),300); }
+}
+
+function buildTutorSystemPrompt(user, subject, grade) {
+  const ctx = buildKidMemoryContext(user);
+  const sn  = { science:'Science', math:'Math', english:'English', social:'Social Studies' };
+  const s   = SUBJECTS[subject];
+  const prog = ctx.subjectProgress[subject]||0;
+  const isWeak   = ctx.weakSubjects.includes(subject);
+  const isStrong = ctx.strongSubjects.includes(subject);
+
+  return `You are Cosmo, a warm, enthusiastic AI tutor for kids grades 3–9. Teaching **${s.label}** to ${ctx.name}, Grade ${grade}.
+
+MEMORY OF THIS STUDENT:
+- ${subject} mastery: ${prog}% ${isWeak?'(needs extra support — be extra patient)':isStrong?'(advanced — challenge them more)':'(building nicely)'}
+- All subjects: Science ${ctx.subjectProgress.science||0}%, Math ${ctx.subjectProgress.math||0}%, English ${ctx.subjectProgress.english||0}%, Social Studies ${ctx.subjectProgress.social||0}%
+- Recent quiz performance: ${ctx.recentQuizSummary}
+- Learning streak: ${ctx.streak} days | Stars earned: ${ctx.totalStars}
+- Last studied: ${ctx.lastSubject ? sn[ctx.lastSubject] : 'first session'}
+
+TEACHING RULES:
+- Use age-appropriate language for Grade ${grade}
+- Occasionally address ${ctx.name} by name to personalise responses
+- ${isWeak ? `Extra patience — break ${s.label} into very small steps for ${ctx.name}` : isStrong ? `${ctx.name} is strong here — go deeper, use harder examples` : 'Match the mid level, build confidence'}
+- Be encouraging — celebrate effort more than correct answers
+- Use emojis naturally (not every sentence)
+- **Bold** key vocabulary terms
+- End every response with an engaging follow-up question or fun fact
+- Keep responses 3–6 sentences unless a concept needs more steps
+- NEVER make ${ctx.name} feel bad for not knowing something`;
+}
+
+// ==============================
+// PATCHED renderKidDash (with memory card + plan badge)
+// ==============================
+function renderKidDash() {
+  navigate('kid-dash');
+  const u = APP.currentUser;
+  document.getElementById('kid-greeting-name').textContent = u.name;
+  document.getElementById('kid-avatar-tb').textContent = u.avatar || u.name[0];
+  document.getElementById('kid-name-tb').textContent = u.name;
+  document.getElementById('tutor-avatar-tb').textContent = u.avatar || u.name[0];
+  document.getElementById('tutor-name-tb').textContent = u.name;
+  document.getElementById('kid-streak').textContent = u.streak || 1;
+
+  const banner = document.getElementById('upgrade-banner');
+  if (banner) banner.style.display = u.plan ? 'none' : 'flex';
+
+  const pr = document.getElementById('progress-row');
+  const subjData = u.subjects || { science:0, math:0, english:0, social:0 };
+  pr.innerHTML = Object.entries(SUBJECTS).map(([k,s]) =>
+    `<div class="prog-card" onclick="openTutor('${k}')">
+      <span class="subj-icon">${s.emoji}</span><h4>${s.label}</h4>
+      <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:${subjData[k]||0}%;background:${s.bg}"></div></div>
+      <div class="stars">${Math.round((subjData[k]||0)/10)} ⭐ / 10</div>
+    </div>`).join('');
+
+  const rb = document.getElementById('recent-box');
+  rb.innerHTML = (!u.quizScores||u.quizScores.length===0)
+    ? '<p style="padding:20px;text-align:center;color:#aaa;font-weight:700">No activity yet — start a lesson! 🚀</p>'
+    : u.quizScores.slice(-4).reverse().map(q => {
+        const s = SUBJECTS[q.subj]||SUBJECTS.science;
+        return `<div class="recent-item">
+          <div class="recent-icon" style="background:${s.bg}">${s.emoji}</div>
+          <div class="recent-info"><h5>${s.label} Quiz</h5><p>${q.date||'Recently'}</p></div>
+          <div class="recent-stars">🏆 ${q.score}/${q.total}</div>
+        </div>`;}).join('');
+
+  const ar = document.getElementById('achievements-row');
+  ar.innerHTML = BADGES.map(b =>
+    `<div class="badge ${b.earned?'':'locked'}">
+      <span class="badge-icon">${b.icon}</span>
+      <div class="badge-info"><h5>${b.name}</h5><p>${b.desc}</p></div>
+    </div>`).join('');
+
+  // Show AI memory greeting (async, non-blocking)
+  showMemoryCard(u);
+}
+
+// ==============================
+// PATCHED sendMsg (memory-aware prompt)
+// ==============================
+async function sendMsg() {
+  const input = document.getElementById('chat-input');
+  const text  = input.value.trim();
+  if (!text || APP.waiting) return;
+  input.value = ''; input.style.height = 'auto';
+  APP.waiting = true;
+  document.getElementById('send-btn').disabled = true;
+
+  addUserMsgToUI(text);
+  setMood('thinking');
+  showTyping();
+
+  const grade = document.getElementById('grade-pick').value;
+  const user  = APP.currentUser || { name:'Student', grade, subjects:{}, quizScores:[], streak:0, stars:0 };
+  const systemPrompt = buildTutorSystemPrompt(user, APP.currentSubject, grade);
+
+  if (APP.currentUser) { APP.currentUser.lastSubject = APP.currentSubject; saveDB(); }
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000,
+                             system:systemPrompt, messages:APP.chatMessages.slice(-10) })
+    });
+    const data = await res.json();
+    removeTyping();
+    const reply = data?.content?.[0]?.text || "Oops! Try again! 😊";
+    addBotMsg(reply);
+    setMood('happy');
+    awardStar();
+    cosmoReact();
+    logConversation(text, reply);
+  } catch(e) {
+    removeTyping();
+    addBotMsg('Hmm, connection trouble! Try again. 🌐');
+    setMood('idle');
+  }
+  APP.waiting = false;
+  document.getElementById('send-btn').disabled = false;
+}
+
+// Patch plan CTA buttons to open payment for logged-in users
+document.querySelectorAll('.cta-solo,.cta-family,.cta-pro,.cta-basic').forEach(btn => {
+  const plan = btn.classList.contains('cta-pro') ? 'pro'
+             : btn.classList.contains('cta-solo') ? 'solo'
+             : 'family';
+  btn.onclick = () => handlePlanCTA(plan);
+});
+
+// Fade-out keyframe for memory card dismiss
+const _style = document.createElement('style');
+_style.textContent = `@keyframes fadeOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-10px)}}`;
+document.head.appendChild(_style);
+
+// ==============================
+// DEMO ACCOUNTS
+// ==============================
+function initDemoAccounts() {
+  const demos = [
+    { id:'demo-parent', name:'Demo Parent', email:'parent@demo.com', pass:'demo', role:'parent', avatar:'👨',
+      kids:[...SAMPLE_KIDS], stars:0, streak:3, subjects:{science:40,math:55,english:70,social:30}, quizScores:[] },
+    { id:'demo-kid', name:'Demo Student', email:'kid@demo.com', pass:'demo', role:'kid', grade:5, avatar:'🦊',
+      kids:[], stars:15, streak:4, subjects:{science:60,math:45,english:80,social:30},
+      quizScores:[{subj:'science',score:9,total:10,date:'Mar 17'},{subj:'math',score:7,total:10,date:'Mar 18'}] }
+  ];
+  demos.forEach(d => { if (!DB.users.find(u=>u.id===d.id)) DB.users.push(d); });
+  saveDB();
+}
+initDemoAccounts();
+
+// ==============================
+// PRICING — BILLING TOGGLE
+// ==============================
+let isAnnual = false;
+const PRICES = { solo:{monthly:5.99,annual:4.99}, family:{monthly:19,annual:13}, pro:{monthly:35,annual:23} };
+
+function toggleBilling() {
+  isAnnual = !isAnnual;
+  document.getElementById('billing-track').classList.toggle('annual', isAnnual);
+  document.getElementById('lbl-monthly').classList.toggle('active', !isAnnual);
+  document.getElementById('lbl-annual').classList.toggle('active', isAnnual);
+  document.getElementById('save-badge').style.display = isAnnual ? 'inline-block' : 'none';
+  updatePriceDisplay();
+}
+
+function updatePriceDisplay() {
+  // Solo
+  const sMo=PRICES.solo.monthly, sAn=PRICES.solo.annual;
+  document.getElementById('price-solo').textContent  = isAnnual ? `$${sAn}` : `$${sMo}`;
+  document.getElementById('orig-solo').textContent   = isAnnual ? `$${sMo}/mo` : '\u00A0';
+  document.getElementById('billed-solo').textContent = isAnnual ? `$${sAn*12}/yr — save $${((sMo-sAn)*12).toFixed(2)}` : 'Billed monthly';
+  // Family
+  const fMo=PRICES.family.monthly, fAn=PRICES.family.annual;
+  document.getElementById('price-family').textContent  = isAnnual ? `$${fAn}` : `$${fMo}`;
+  document.getElementById('orig-family').textContent   = isAnnual ? `$${fMo}/mo` : '\u00A0';
+  document.getElementById('billed-family').textContent = isAnnual ? `$${fAn*12}/yr — save $${(fMo-fAn)*12}` : 'Billed monthly';
+  // Pro
+  const pMo=PRICES.pro.monthly, pAn=PRICES.pro.annual;
+  document.getElementById('price-pro').textContent     = isAnnual ? `$${pAn}` : `$${pMo}`;
+  document.getElementById('orig-pro').textContent      = isAnnual ? `$${pMo}/mo` : '\u00A0';
+  document.getElementById('billed-pro').textContent    = isAnnual ? `$${pAn*12}/yr — save $${(pMo-pAn)*12}` : 'Billed monthly';
+}
+
+// ==============================
+// FAQ A// ══════════════════════════════════════════════════════════════
+// COSMO VOICE ENGINE
+// Uses Web Speech API (TTS) + SpeechRecognition (STT)
+// Works natively in Chrome, Edge, Safari — no API keys needed
+// ══════════════════════════════════════════════════════════════
+
+APP.voice = {
+  enabled:    false,
+  autoSpeak:  true,
+  speaking:   false,
+  listening:  false,
+  utterance:  null,
+  synth:      window.speechSynthesis || null,
+  recognition:null,
+  voices:     [],
+  selectedVoice: null,
+  speed:      0.9,
+  pitch:      1.15,
+  waveAnim:   null,
+  analyser:   null,
+  audioCtx:   null,
+  micStream:  null,
+};
+
+// Friendly voice test lines by subject
+const VOICE_TESTS = {
+  science: "Hi there! I'm Cosmo, your friendly science tutor. Did you know that a bolt of lightning is five times hotter than the surface of the sun? Pretty amazing, right?",
+  math:    "Hey! I'm Cosmo, your math buddy! Numbers are like puzzles, and we're going to solve them together. Let's start with something fun!",
+  english: "Hello! I'm Cosmo! Stories are magical — they can take you anywhere in the universe without ever leaving your chair. What shall we read today?",
+  social:  "Hi! I'm Cosmo! History is basically the most epic adventure story ever written — and YOU get to learn all of it. Let's explore together!",
+  default: "Hi there! I'm Cosmo, your friendly AI tutor! I'm here to make learning fun, exciting, and easy. What would you like to discover today?"
+};
+
+// ── Load available TTS voices ────────────────────────────────────────────────
+function loadVoices() {
+  if (!APP.voice.synth) return;
+  const voices = APP.voice.synth.getVoices();
+  if (!voices.length) return;
+
+  APP.voice.voices = voices;
+  const select = document.getElementById('vd-voice-select');
+  if (!select) return;
+
+  // Prefer child-friendly voices: higher-pitched, English
+  const preferred = [
+    'Google UK English Female',
+    'Samantha',           // macOS/iOS
+    'Karen',              // macOS Australian
+    'Moira',              // macOS Irish
+    'Google US English',
+    'Microsoft Zira',     // Windows
+    'Microsoft Hazel',    // Windows UK
+  ];
+
+  // Sort: preferred first, then all other English voices
+  const english = voices.filter(v => v.lang.startsWith('en'));
+  const sorted  = [
+    ...preferred.map(name => english.find(v => v.name === name)).filter(Boolean),
+    ...english.filter(v => !preferred.includes(v.name))
+  ];
+
+  select.innerHTML = sorted.map((v, i) =>
+    `<option value="${v.name}" ${i === 0 ? 'selected' : ''}>${v.name.replace('Google ', '').replace('Microsoft ', '')} (${v.lang})</option>`
+  ).join('');
+
+  // Auto-select best available
+  APP.voice.selectedVoice = sorted[0] || voices[0];
+}
+
+// voices load asynchronously in Chrome
+if (window.speechSynthesis) {
+  speechSynthesis.onvoiceschanged = loadVoices;
+  loadVoices();
+}
+
+// ── Toggle voice panel on/off ────────────────────────────────────────────────
+function toggleVoicePanel() {
+  const drawer  = document.getElementById('voice-drawer');
+  const isOpen  = drawer.classList.contains('open');
+
+  if (isOpen) {
+    drawer.classList.remove('open');
+  } else {
+    drawer.classList.add('open');
+    loadVoices(); // refresh voice list each open
+    // Activate voice on first open
+    if (!APP.voice.enabled) activateVoice();
+  }
+}
+
+// Close drawer when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.voice-drawer') && !e.target.closest('.voice-toggle-btn')) {
+    document.getElementById('voice-drawer')?.classList.remove('open');
+  }
+});
+
+// ── Activate / deactivate voice ──────────────────────────────────────────────
+function activateVoice() {
+  if (!APP.voice.synth) {
+    document.getElementById('no-speech-notice').style.display = 'block';
+    return;
+  }
+
+  APP.voice.enabled = true;
+  document.getElementById('voice-bar').classList.remove('hidden');
+  document.getElementById('voice-toggle-btn').classList.add('active');
+
+  // Setup speech recognition if available
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRecognition) {
+    const rec = new SpeechRecognition();
+    rec.continuous     = false;
+    rec.interimResults = true;
+    rec.lang           = 'en-US';
+    rec.maxAlternatives= 1;
+
+    rec.onstart = () => {
+      APP.voice.listening = true;
+      setVoiceState('listening');
+    };
+
+    rec.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map(r => r[0].transcript).join('');
+      const input = document.getElementById('chat-input');
+      if (input) {
+        input.value = transcript;
+        autoGrow(input);
+      }
+      if (event.results[event.results.length - 1].isFinal) {
+        APP.voice.listening = false;
+        setVoiceState('idle');
+        // Auto-send on final result
+        setTimeout(() => { if (input?.value.trim()) sendMsg(); }, 400);
+      }
+    };
+
+    rec.onerror = (e) => {
+      APP.voice.listening = false;
+      setVoiceState('idle');
+      if (e.error === 'not-allowed') {
+        document.getElementById('no-speech-notice').style.display = 'block';
+        document.getElementById('no-speech-notice').textContent =
+          '🎤 Microphone access was denied. Please allow microphone in your browser settings.';
+      }
+    };
+
+    rec.onend = () => {
+      APP.voice.listening = false;
+      setVoiceState('idle');
+      document.getElementById('mic-btn')?.classList.remove('listening');
+    };
+
+    APP.voice.recognition = rec;
+  } else {
+    // STT not available — show notice but TTS still works
+    document.getElementById('no-speech-notice').style.display = 'block';
+    document.getElementById('mic-btn').classList.add('disabled-mic');
+    document.getElementById('mic-btn').title = 'Voice input not supported in this browser';
+  }
+
+  // Greet with voice on first activation
+  const greetText = `Hi! I'm Cosmo! Voice mode is on. Just press the microphone button and talk to me — or keep typing. I'll read my answers out loud for you!`;
+  speakText(greetText, true);
+}
+
+// ── Update voice state UI ────────────────────────────────────────────────────
+function setVoiceState(state) {
+  const cosmoAv = document.getElementById('cosmo-av');
+  const label   = document.getElementById('waveform-label');
+  const micBtn  = document.getElementById('mic-btn');
+
+  cosmoAv?.classList.remove('speaking', 'listening');
+  micBtn?.classList.remove('listening');
+
+  if (state === 'speaking') {
+    cosmoAv?.classList.add('speaking');
+    if (label) { label.textContent = 'Cosmo is talking…'; label.className = 'waveform-label speaking'; }
+  } else if (state === 'listening') {
+    cosmoAv?.classList.add('listening');
+    micBtn?.classList.add('listening');
+    if (label) { label.textContent = 'Listening… speak now!'; label.className = 'waveform-label listening'; }
+  } else {
+    if (label) { label.textContent = 'Press 🎤 to speak'; label.className = 'waveform-label'; }
+  }
+}
+
+// ── Update voice settings from drawer controls ───────────────────────────────
+function updateVoiceSettings() {
+  const sel   = document.getElementById('vd-voice-select');
+  const speed = parseFloat(document.getElementById('vd-speed')?.value || '0.9');
+  const pitch = parseFloat(document.getElementById('vd-pitch')?.value || '1.15');
+
+  APP.voice.speed = speed;
+  APP.voice.pitch = pitch;
+  APP.voice.selectedVoice = APP.voice.voices.find(v => v.name === sel?.value) || APP.voice.selectedVoice;
+}
+
+// ── Core TTS function ────────────────────────────────────────────────────────
+function speakText(text, force = false) {
+  if (!APP.voice.synth) return;
+  if (!APP.voice.enabled && !force) return;
+
+  // Cancel any ongoing speech
+  APP.voice.synth.cancel();
+
+  // Strip markdown bold markers and emoji for cleaner speech
+  const clean = text
+    .replace(/\*\*(.*?)\*\*/g, '$1')   // remove **bold**
+    .replace(/[🔬🔢📖🌍🚀⭐🏆🎉✨💫🌟🎊🎓🔥💡👋🤖]/gu, '') // strip emojis
+    .replace(/<[^>]+>/g, '')           // strip HTML tags
+    .replace(/\n+/g, '. ')             // newlines → pauses
+    .trim();
+
+  if (!clean) return;
+
+  const utterance = new SpeechSynthesisUtterance(clean);
+
+  // Apply settings
+  if (APP.voice.selectedVoice) utterance.voice = APP.voice.selectedVoice;
+  utterance.rate   = APP.voice.speed;
+  utterance.pitch  = APP.voice.pitch;
+  utterance.volume = 1;
+
+  utterance.onstart = () => {
+    APP.voice.speaking = true;
+    setVoiceState('speaking');
+    startWaveform('speaking');
+  };
+
+  utterance.onend = () => {
+    APP.voice.speaking = false;
+    setVoiceState('idle');
+    stopWaveform();
+  };
+
+  utterance.onerror = () => {
+    APP.voice.speaking = false;
+    setVoiceState('idle');
+    stopWaveform();
+  };
+
+  APP.voice.utterance = utterance;
+  APP.voice.synth.speak(utterance);
+}
+
+// ── Stop speaking ────────────────────────────────────────────────────────────
+function stopSpeaking() {
+  if (APP.voice.synth) APP.voice.synth.cancel();
+  APP.voice.speaking = false;
+  setVoiceState('idle');
+  stopWaveform();
+}
+
+// ── Toggle mic for speech input ──────────────────────────────────────────────
+function toggleMic() {
+  if (!APP.voice.recognition) return;
+  if (document.getElementById('mic-btn').classList.contains('disabled-mic')) return;
+
+  if (APP.voice.listening) {
+    APP.voice.recognition.stop();
+    APP.voice.listening = false;
+    setVoiceState('idle');
+  } else {
+    // Stop Cosmo speaking before listening
+    stopSpeaking();
+    try {
+      APP.voice.recognition.start();
+      startWaveform('listening');
+    } catch(e) {
+      console.warn('Recognition error:', e);
+    }
+  }
+}
+
+// ── Test voice from settings drawer ─────────────────────────────────────────
+function testVoice() {
+  updateVoiceSettings();
+  const testLine = VOICE_TESTS[APP.currentSubject] || VOICE_TESTS.default;
+  speakText(testLine, true);
+}
+
+// ── Animated waveform on canvas ──────────────────────────────────────────────
+function startWaveform(mode) {
+  const canvas = document.getElementById('waveform-canvas');
+  if (!canvas) return;
+  const ctx    = canvas.getContext('2d');
+  const W = canvas.width  = canvas.offsetWidth;
+  const H = canvas.height = canvas.offsetHeight;
+  let   frame = 0;
+  const color = mode === 'speaking' ? '#5BC4FF' : '#52DBA8';
+
+  stopWaveform(); // clear any existing animation
+
+  APP.voice.waveAnim = setInterval(() => {
+    ctx.clearRect(0, 0, W, H);
+    ctx.beginPath();
+    const bars = 28;
+    const barW = W / bars - 2;
+    for (let i = 0; i < bars; i++) {
+      // Organic height variation using sine waves
+      const t    = frame * 0.08 + i * 0.45;
+      const amp  = mode === 'speaking'
+        ? 0.35 + 0.55 * Math.abs(Math.sin(t) * Math.sin(t * 0.7))
+        : 0.2  + 0.4  * Math.abs(Math.sin(t * 1.3));
+      const barH = Math.max(3, amp * H * 0.85);
+      const x    = i * (barW + 2) + 1;
+      const y    = (H - barH) / 2;
+
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.55 + amp * 0.45;
+      const r = barW / 2;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(x, y, barW, barH, r) : ctx.rect(x, y, barW, barH);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    frame++;
+  }, 45);
+}
+
+function stopWaveform() {
+  if (APP.voice.waveAnim) {
+    clearInterval(APP.voice.waveAnim);
+    APP.voice.waveAnim = null;
+  }
+  const canvas = document.getElementById('waveform-canvas');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width = canvas.offsetWidth;
+    const H = canvas.height = canvas.offsetHeight;
+    // Draw flat idle line
+    ctx.clearRect(0, 0, W, H);
+    const bars = 28;
+    const barW = W / bars - 2;
+    for (let i = 0; i < bars; i++) {
+      ctx.fillStyle = '#D0D8EE';
+      ctx.globalAlpha = 0.5;
+      const x = i * (barW + 2) + 1;
+      const barH = 3;
+      const y = (H - barH) / 2;
+      ctx.fillRect(x, y, barW, barH);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ── Patch addBotMsg to auto-speak Cosmo replies ───────────────────────────────
+const _origAddBotMsg = addBotMsg;
+function addBotMsg(text) {
+  _origAddBotMsg(text);
+  if (APP.voice.enabled && APP.voice.autoSpeak) {
+    // Small delay so the bubble renders first
+    setTimeout(() => speakText(text), 180);
+  }
+}
+
+// ── Patch cosmoReact to add a chirp sound feel (visual only here) ────────────
+const _origCosmoReact = cosmoReact;
+function cosmoReact() {
+  _origCosmoReact();
+  // If speaking, briefly intensify the avatar glow
+  if (APP.voice.speaking) {
+    const av = document.getElementById('cosmo-av');
+    av.style.filter = 'brightness(1.15)';
+    setTimeout(() => av.style.filter = '', 300);
+  }
+}
+
+// Keyboard shortcut: Space bar while focused on mic area = toggle mic
+document.addEventListener('keydown', (e) => {
+  // Only when tutor page is visible and voice is enabled
+  if (!APP.voice.enabled) return;
+  if (e.code === 'Space' && e.target === document.body) {
+    e.preventDefault();
+    toggleMic();
+  }
+});
+
+// ── iOS/Safari workaround — synth needs user gesture to initialise ───────────
+document.addEventListener('click', () => {
+  if (APP.voice.synth && APP.voice.synth.paused) APP.voice.synth.resume();
+}, { once: true });
+// ══════════════════════════════════════════════════════════════
+// END VOICE ENGINE
+// ══════════════════════════════════════════════════════════════
+
+// ==============================
+// FAQ ACCORDION
+// ==============================
+function toggleFaq(item) {
+  const open = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(f => f.classList.remove('open'));
+  if (!open) item.classList.add('open');
+}
+
+// Init
+updatePriceDisplay();
+document.querySelector('.hero p').innerHTML += '<br><small style="opacity:.55;font-size:.8rem">Demo: parent@demo.com / kid@demo.com · password: demo</small>';
+renderSuggestions();
+</script>
+</body>
+</html>

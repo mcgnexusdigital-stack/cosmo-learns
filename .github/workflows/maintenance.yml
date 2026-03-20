@@ -1,0 +1,144 @@
+name: 🔧 Scheduled Maintenance
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'          # Every Monday at 6am UTC — dependency check
+    - cron: '0 8 1 * *'          # 1st of each month at 8am UTC — full audit
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Which task to run'
+        type: choice
+        options: [all, deps, security, lighthouse, cost]
+        default: all
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+
+# ── DEPENDENCY UPDATES ────────────────────────────────────────────────────────
+  dependency-check:
+    name: 📦 Dependency Updates
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 6 * * 1' || github.event.inputs.task == 'deps' || github.event.inputs.task == 'all'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Check for outdated packages
+        run: |
+          echo "## Root dependencies" && npm outdated || true
+          echo "## Function dependencies" && npm outdated --prefix functions || true
+
+      - name: Run npm audit
+        run: |
+          npm audit --audit-level=moderate > audit-report.txt 2>&1 || true
+          cat audit-report.txt
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-report-${{ github.run_id }}
+          path: audit-report.txt
+          retention-days: 30
+
+      - name: Notify if critical vulnerabilities found
+        run: |
+          if npm audit --audit-level=critical 2>&1 | grep -q "critical"; then
+            echo "CRITICAL_VULNS=true" >> $GITHUB_ENV
+          fi
+
+      - name: Alert Slack on critical vulnerabilities
+        if: env.CRITICAL_VULNS == 'true'
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "🚨 Critical security vulnerabilities found in Cosmo Learns dependencies!",
+              "blocks": [{
+                "type": "section",
+                "text": { "type": "mrkdwn", "text": "🚨 *Critical npm vulnerabilities detected* — immediate action required!\n<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Report>" }
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL:  ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        continue-on-error: true
+
+
+# ── MONTHLY LIGHTHOUSE AUDIT ──────────────────────────────────────────────────
+  monthly-lighthouse:
+    name: 🏠 Monthly Lighthouse Audit
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 8 1 * *' || github.event.inputs.task == 'lighthouse' || github.event.inputs.task == 'all'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit production site
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          urls: |
+            https://cosmolearns.ca
+            https://cosmolearns.ca/#pricing
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+        id: lh
+        continue-on-error: true
+
+      - name: Post monthly Lighthouse report to Slack
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "📊 Monthly Lighthouse Audit — Cosmo Learns Production",
+              "blocks": [{
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "📊 *Monthly Lighthouse Audit*\n<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Full Report>"
+                }
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL:  ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        continue-on-error: true
+
+
+# ── FIREBASE COST MONITORING ──────────────────────────────────────────────────
+  cost-check:
+    name: 💰 Firebase Usage Check
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 8 1 * *' || github.event.inputs.task == 'cost' || github.event.inputs.task == 'all'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Check Firestore usage estimate
+        run: |
+          echo "📊 Checking Firebase project stats..."
+          # List recent function invocations (as a proxy for usage)
+          firebase functions:log \
+            --project ${{ secrets.FIREBASE_PROJECT_PROD }} \
+            --token ${{ secrets.FIREBASE_TOKEN }} \
+            --lines 10 2>/dev/null || echo "Unable to fetch logs — check Firebase Console"
+
+          echo ""
+          echo "💡 Check full usage at:"
+          echo "https://console.firebase.google.com/project/${{ secrets.FIREBASE_PROJECT_PROD }}/usage"
+        continue-on-error: true

@@ -1,0 +1,209 @@
+name: 🚧 Deploy — Staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:                  # allow manual trigger from GitHub UI
+    inputs:
+      reason:
+        description: 'Reason for manual deploy'
+        required: false
+        default: 'Manual trigger'
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false          # never cancel staging deploys mid-flight
+
+env:
+  NODE_VERSION: '18'
+
+# ─────────────────────────────────────────────────────────────────────────────
+jobs:
+
+  deploy-staging:
+    name: 🚧 Deploy to Staging
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.cosmolearns.ca
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0              # full history for changelog generation
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install & build Cloud Functions
+        run: |
+          npm ci --prefix functions
+          npm run build --prefix functions
+
+      # Run tests one more time before deploying
+      - name: Run tests
+        run: npm test
+        env:
+          CI: true
+
+      # Inject staging config (Stripe test keys, staging Firebase project)
+      - name: Inject staging config
+        run: node scripts/inject-config.js --env staging
+        env:
+          STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY_STAGING }}
+          GOOGLE_CLIENT_ID:       ${{ secrets.GOOGLE_CLIENT_ID }}
+          FIREBASE_PROJECT_ID:    ${{ secrets.FIREBASE_PROJECT_STAGING }}
+
+      # Deploy Firestore rules & indexes first (safe to run anytime)
+      - name: Deploy Firestore Rules & Indexes
+        run: |
+          npx firebase-tools deploy \
+            --only firestore \
+            --project ${{ secrets.FIREBASE_PROJECT_STAGING }} \
+            --token ${{ secrets.FIREBASE_TOKEN }} \
+            --non-interactive
+
+      # Deploy Storage rules
+      - name: Deploy Storage Rules
+        run: |
+          npx firebase-tools deploy \
+            --only storage \
+            --project ${{ secrets.FIREBASE_PROJECT_STAGING }} \
+            --token ${{ secrets.FIREBASE_TOKEN }} \
+            --non-interactive
+
+      # Deploy Cloud Functions with secret injection
+      - name: Deploy Cloud Functions
+        run: |
+          npx firebase-tools deploy \
+            --only functions \
+            --project ${{ secrets.FIREBASE_PROJECT_STAGING }} \
+            --token ${{ secrets.FIREBASE_TOKEN }} \
+            --non-interactive
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      # Deploy Hosting last (so functions are ready when users land)
+      - name: Deploy Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        id: hosting
+        with:
+          repoToken:          ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STAGING }}
+          projectId:          ${{ secrets.FIREBASE_PROJECT_STAGING }}
+          channelId:          live
+
+      # Smoke test — verify the deployed site is actually up
+      - name: Smoke Test
+        run: |
+          URL="https://${{ secrets.FIREBASE_PROJECT_STAGING }}.web.app"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Smoke test failed! Status: $STATUS"
+            exit 1
+          fi
+          echo "✅ Smoke test passed — site is live at $URL"
+
+      # Generate changelog from commit messages since last tag
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            LOG=$(git log $LAST_TAG..HEAD --pretty=format:"- %s (%h)" --no-merges | head -20)
+          else
+            LOG=$(git log --pretty=format:"- %s (%h)" --no-merges | head -20)
+          fi
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$LOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      # Notify Slack on success
+      - name: Notify Slack — Staging Success
+        if: success()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "✅ *Cosmo Learns* deployed to *Staging* successfully!",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": { "type": "plain_text", "text": "🚧 Staging Deploy Successful" }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    { "type": "mrkdwn", "text": "*URL:*\nhttps://staging.cosmolearns.ca" },
+                    { "type": "mrkdwn", "text": "*Commit:*\n`${{ github.sha }}`" },
+                    { "type": "mrkdwn", "text": "*Branch:*\n`${{ github.ref_name }}`" },
+                    { "type": "mrkdwn", "text": "*Author:*\n${{ github.actor }}" }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": { "type": "mrkdwn", "text": "*Changes:*\n${{ steps.changelog.outputs.changelog }}" }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": { "type": "plain_text", "text": "🌐 View Staging" },
+                      "url": "https://staging.cosmolearns.ca",
+                      "style": "primary"
+                    },
+                    {
+                      "type": "button",
+                      "text": { "type": "plain_text", "text": "🚀 Promote to Production" },
+                      "url": "https://github.com/${{ github.repository }}/actions/workflows/deploy-production.yml"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL:  ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        continue-on-error: true        # don't fail deploy if Slack is down
+
+      # Notify Slack on failure
+      - name: Notify Slack — Staging Failed
+        if: failure()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "❌ *Cosmo Learns* staging deploy *FAILED*!",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": { "type": "plain_text", "text": "🚨 Staging Deploy Failed" }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    { "type": "mrkdwn", "text": "*Commit:*\n`${{ github.sha }}`" },
+                    { "type": "mrkdwn", "text": "*Author:*\n${{ github.actor }}" }
+                  ]
+                },
+                {
+                  "type": "actions",
+                  "elements": [{
+                    "type": "button",
+                    "text": { "type": "plain_text", "text": "🔍 View Logs" },
+                    "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                    "style": "danger"
+                  }]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL:  ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        continue-on-error: true
