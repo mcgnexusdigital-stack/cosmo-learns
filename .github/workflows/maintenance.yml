@@ -55,7 +55,7 @@ jobs:
 
       - name: Alert Slack on critical vulnerabilities
         if: env.CRITICAL_VULNS == 'true'
-        uses: slackapi/slack-github-action@v1.26.0
+        uses: slackapi/slack-github-action@v3.0.1
         with:
           payload: |
             {
@@ -99,7 +99,7 @@ jobs:
         continue-on-error: true
 
       - name: Post monthly Lighthouse report to Slack
-        uses: slackapi/slack-github-action@v1.26.0
+        uses: slackapi/slack-github-action@v3.0.1
         with:
           payload: |
             {

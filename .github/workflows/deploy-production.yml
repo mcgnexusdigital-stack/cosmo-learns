@@ -181,7 +181,7 @@ jobs:
       # Notify Slack — production deploy success
       - name: Notify Slack — Production Success
         if: success()
-        uses: slackapi/slack-github-action@v1.26.0
+        uses: slackapi/slack-github-action@v3.0.1
         with:
           payload: |
             {
@@ -226,7 +226,7 @@ jobs:
       # Notify Slack — production FAILED (alert everyone)
       - name: Notify Slack — Production FAILED 🚨
         if: failure()
-        uses: slackapi/slack-github-action@v1.26.0
+        uses: slackapi/slack-github-action@v3.0.1
         with:
           payload: |
             {

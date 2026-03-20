@@ -91,7 +91,7 @@ jobs:
           [ "$STATUS" = "200" ] && echo "✅ Site is up after rollback" || echo "⚠️ Check site manually: $URL"
 
       - name: Notify Slack — Rollback
-        uses: slackapi/slack-github-action@v1.26.0
+        uses: slackapi/slack-github-action@v3.0.1
         with:
           payload: |
             {
