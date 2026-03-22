@@ -1,0 +1,32 @@
+[
+  {
+    "path": "/*",
+    "timings": [
+      { "metric": "first-contentful-paint",       "budget": 2500 },
+      { "metric": "largest-contentful-paint",      "budget": 4000 },
+      { "metric": "total-blocking-time",           "budget": 400  },
+      { "metric": "cumulative-layout-shift",       "budget": 0.15 },
+      { "metric": "speed-index",                   "budget": 4000 },
+      { "metric": "interactive",                   "budget": 5000 },
+      { "metric": "first-meaningful-paint",        "budget": 3000 },
+      { "metric": "max-potential-fid",             "budget": 300  }
+    ],
+    "resourceSizes": [
+      { "resourceType": "script",   "budget": 200 },
+      { "resourceType": "total",    "budget": 800 },
+      { "resourceType": "document", "budget": 600 },
+      { "resourceType": "image",    "budget": 150 },
+      { "resourceType": "font",     "budget": 100 }
+    ],
+    "resourceCounts": [
+      { "resourceType": "third-party", "budget": 10 },
+      { "resourceType": "script",      "budget": 8  }
+    ],
+    "scores": [
+      { "id": "performance",    "minScore": 0.80 },
+      { "id": "accessibility",  "minScore": 0.90 },
+      { "id": "best-practices", "minScore": 0.90 },
+      { "id": "seo",            "minScore": 0.80 }
+    ]
+  }
+]

@@ -1,0 +1,56 @@
+version: 2
+updates:
+  # Root package dependencies
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "America/Toronto"
+    open-pull-requests-limit: 5
+    groups:
+      # Group all minor/patch updates into one PR per week
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+      # Security patches get their own immediate PRs
+    labels:
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(dev-deps)"
+    reviewers:
+      - "your-github-username"      # ← replace with your GitHub username
+    ignore:
+      # Don't auto-update major versions — review manually
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Firebase Functions dependencies
+  - package-ecosystem: npm
+    directory: "/functions"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:30"
+      timezone: "America/Toronto"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "functions"
+      - "automated"
+    commit-message:
+      prefix: "chore(functions-deps)"
+
+  # GitHub Actions themselves
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "automated"
+    commit-message:
+      prefix: "ci(actions)"

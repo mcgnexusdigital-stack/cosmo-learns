@@ -1,0 +1,27 @@
+{
+  "projects": {
+    "default": "cosmo-learns-prod",
+    "production": "cosmo-learns-prod",
+    "staging": "cosmo-learns-staging"
+  },
+  "targets": {
+    "cosmo-learns-prod": {
+      "hosting": {
+        "production": [
+          "cosmo-learns-prod"
+        ]
+      }
+    },
+    "cosmo-learns-staging": {
+      "hosting": {
+        "staging": [
+          "cosmo-learns-staging"
+        ],
+        "production": [
+          "cosmo-learns-prod"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

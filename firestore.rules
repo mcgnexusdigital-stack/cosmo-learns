@@ -1,0 +1,113 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ─────────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    function isParentOf(kidId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/kids/$(kidId)) &&
+        get(/databases/$(database)/documents/kids/$(kidId)).data.parentId == request.auth.uid;
+    }
+
+    function isKidSelf(kidId) {
+      return isSignedIn() && request.auth.uid == kidId;
+    }
+
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isParent() {
+      return isSignedIn() && userRole() == 'parent';
+    }
+
+    function isKid() {
+      return isSignedIn() && userRole() == 'kid';
+    }
+
+    // ── Users collection ─────────────────────────────────────────────────────
+    // Each user can read/write only their own document
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid) &&
+        request.resource.data.keys().hasAll(['name','email','role','createdAt']) &&
+        request.resource.data.role in ['parent','kid'];
+      allow update: if isOwner(uid) &&
+        // Prevent role escalation
+        request.resource.data.role == resource.data.role;
+      allow delete: if false; // soft-delete only via function
+    }
+
+    // ── Parents collection ───────────────────────────────────────────────────
+    match /parents/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if isOwner(uid);
+    }
+
+    // ── Kids collection ───────────────────────────────────────────────────────
+    // Kids can read/write their own doc; parents can read/write their kids' docs
+    match /kids/{kidId} {
+      allow read: if isKidSelf(kidId) || isParentOf(kidId);
+      allow create: if isParent() &&
+        request.resource.data.parentId == request.auth.uid &&
+        request.resource.data.keys().hasAll(['name','grade','avatar','parentId','stars','streak']);
+      allow update: if isKidSelf(kidId) || isParentOf(kidId);
+      allow delete: if isParentOf(kidId);
+    }
+
+    // ── Sessions (chat conversations) ─────────────────────────────────────────
+    match /sessions/{sessionId} {
+      allow read: if isSignedIn() && (
+        resource.data.kidId == request.auth.uid ||
+        isParentOf(resource.data.kidId)
+      );
+      allow create: if isSignedIn() &&
+        request.resource.data.kidId == request.auth.uid &&
+        request.resource.data.keys().hasAll(['kidId','subject','grade','startedAt']);
+      allow update: if isSignedIn() &&
+        resource.data.kidId == request.auth.uid &&
+        // Prevent changing ownership
+        request.resource.data.kidId == resource.data.kidId;
+      allow delete: if false;
+    }
+
+    // ── Quiz Results ──────────────────────────────────────────────────────────
+    match /quizResults/{resultId} {
+      allow read: if isSignedIn() && (
+        resource.data.kidId == request.auth.uid ||
+        isParentOf(resource.data.kidId)
+      );
+      allow create: if isSignedIn() &&
+        request.resource.data.kidId == request.auth.uid &&
+        request.resource.data.keys().hasAll(['kidId','subject','grade','score','total','completedAt']);
+      allow update: if false; // immutable
+      allow delete: if false;
+    }
+
+    // ── Achievements ───────────────────────────────────────────────────────────
+    match /achievements/{kidId}/earned/{achievementId} {
+      allow read: if isKidSelf(kidId) || isParentOf(kidId);
+      allow write: if false; // written only by Cloud Functions
+    }
+
+    // ── Notifications (parent alerts) ──────────────────────────────────────────
+    match /notifications/{uid}/items/{notifId} {
+      allow read: if isOwner(uid);
+      allow write: if false; // written only by Cloud Functions
+    }
+
+    // ── App config (read-only public) ─────────────────────────────────────────
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

@@ -1,0 +1,118 @@
+name: 🔄 Emergency Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Roll back to: previous | specific-version (e.g. v1.1.0)'
+        required: true
+        default: 'previous'
+      reason:
+        description: 'Reason for rollback (shown in Slack alert)'
+        required: true
+      environment:
+        description: 'Environment to roll back'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  rollback:
+    name: 🔄 Rollback ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.environment }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set Firebase project
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            echo "PROJECT=${{ secrets.FIREBASE_PROJECT_PROD }}" >> $GITHUB_ENV
+            echo "SA_KEY=FIREBASE_SERVICE_ACCOUNT_PROD" >> $GITHUB_ENV
+          else
+            echo "PROJECT=${{ secrets.FIREBASE_PROJECT_STAGING }}" >> $GITHUB_ENV
+            echo "SA_KEY=FIREBASE_SERVICE_ACCOUNT_STAGING" >> $GITHUB_ENV
+          fi
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Rollback Firebase Hosting
+        run: |
+          TARGET="${{ github.event.inputs.target }}"
+          if [ "$TARGET" = "previous" ]; then
+            echo "Rolling back to previous Firebase release..."
+            firebase hosting:rollback \
+              --project ${{ env.PROJECT }} \
+              --token ${{ secrets.FIREBASE_TOKEN }} \
+              --non-interactive
+          else
+            echo "Rolling back to version $TARGET ..."
+            # Checkout that tag and redeploy
+            git checkout "refs/tags/$TARGET"
+            npm ci
+            npm ci --prefix functions
+            npm run build --prefix functions
+
+            if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+              node scripts/inject-config.js --env production
+            else
+              node scripts/inject-config.js --env staging
+            fi
+
+            firebase hosting:deploy \
+              --project ${{ env.PROJECT }} \
+              --token ${{ secrets.FIREBASE_TOKEN }} \
+              --non-interactive
+          fi
+        env:
+          STRIPE_PUBLISHABLE_KEY: ${{ github.event.inputs.environment == 'production' && secrets.STRIPE_PUBLISHABLE_KEY_PROD || secrets.STRIPE_PUBLISHABLE_KEY_STAGING }}
+          GOOGLE_CLIENT_ID:       ${{ secrets.GOOGLE_CLIENT_ID }}
+          FIREBASE_PROJECT_ID:    ${{ env.PROJECT }}
+
+      - name: Smoke test after rollback
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            URL="https://cosmolearns.ca"
+          else
+            URL="https://staging.cosmolearns.ca"
+          fi
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+          [ "$STATUS" = "200" ] && echo "✅ Site is up after rollback" || echo "⚠️ Check site manually: $URL"
+
+      - name: Notify Slack — Rollback
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "🔄 Rollback executed on *${{ github.event.inputs.environment }}*",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": { "type": "plain_text", "text": "🔄 Rollback Executed" }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    { "type": "mrkdwn", "text": "*Environment:*\n${{ github.event.inputs.environment }}" },
+                    { "type": "mrkdwn", "text": "*Rolled back to:*\n${{ github.event.inputs.target }}" },
+                    { "type": "mrkdwn", "text": "*Reason:*\n${{ github.event.inputs.reason }}" },
+                    { "type": "mrkdwn", "text": "*Executed by:*\n${{ github.actor }}" }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL:  ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        continue-on-error: true
