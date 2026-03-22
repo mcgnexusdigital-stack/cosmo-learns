@@ -1802,7 +1802,7 @@ const SUGGESTIONS = {
 
 // ── Central AI call helper ───────────────────────────────────────────────────
 // Routes through Firebase Function proxy to avoid CORS issues.
-async function callAI({ endpoint = 'chat', system, messages, prompt, max_tokens = 1000 } = {}) {
+async function callAI({ endpoint = 'chat', system, messages, prompt, max_tokens = 1000 } = {}, retries = 2) {
   const useFunctionsProxy = FUNCTIONS_BASE && !FUNCTIONS_BASE.includes('YOUR_FUNCTIONS');
 
   // Map endpoint shortnames to Firebase Function names
@@ -1815,16 +1815,31 @@ async function callAI({ endpoint = 'chat', system, messages, prompt, max_tokens 
     const body = endpoint === 'chat'
       ? { system, messages, max_tokens }
       : { prompt };
-    const res  = await fetch(url, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) throw new Error(`Functions error: ${res.status}`);
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    return endpoint === 'chat'
-      ? { content: data.content }
-      : { content: [{ type: 'text', text: data.content }] };
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 25000); // 25s timeout
+        const res = await fetch(url, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        if (!res.ok) throw new Error(`Functions error: ${res.status}`);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        return endpoint === 'chat'
+          ? { content: data.content }
+          : { content: [{ type: 'text', text: data.content }] };
+      } catch(e) {
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+          continue;
+        }
+        throw e;
+      }
+    }
   } else {
     // Direct call — works in dev, blocked by CORS in prod without Functions deployed
     const bodyObj = endpoint === 'chat'
@@ -2437,53 +2452,6 @@ function showTyping() {
 }
 function removeTyping() { const t = document.getElementById('typing-ind'); if(t) t.remove(); }
 
-async function sendMsg() {
-  const input = document.getElementById('chat-input');
-  const text = input.value.trim();
-  if (!text || APP.waiting) return;
-  input.value = ''; input.style.height = 'auto';
-  APP.waiting = true;
-  document.getElementById('send-btn').disabled = true;
-
-  addUserMsgToUI(text);
-  setMood('thinking');
-  showTyping();
-
-  const grade = document.getElementById('grade-pick').value;
-  const s = SUBJECTS[APP.currentSubject];
-  const systemPrompt = `You are Cosmo, a warm, enthusiastic AI tutor for kids grades 3–9. You are currently teaching **${s.label}** to a Grade ${grade} student named ${APP.currentUser?.name || 'there'}.
-
-Rules:
-- Use age-appropriate language for Grade ${grade}
-- Be encouraging — celebrate effort, not just correct answers
-- Use emojis naturally (not every sentence)
-- Bold key vocabulary terms using **term**
-- Break concepts into simple steps with relatable analogies
-- End every response with one engaging follow-up question or fun fact
-- Keep responses to 3–6 sentences unless explaining a multi-step concept
-- NEVER make students feel bad for not knowing something`;
-
-  const payload = APP.chatMessages.slice(-10);
-
-  try {
-    const data = await callAI({ endpoint:'chat', system:systemPrompt, messages:payload, max_tokens:1000 });
-    removeTyping();
-    const reply = data?.content?.[0]?.text || 'Oops! Something went wrong. Try again! 😊';
-    addBotMsg(reply);
-    setMood('happy');
-    awardStar();
-    cosmoReact();
-    logConversation(text, reply);
-  } catch(e) {
-    removeTyping();
-    addBotMsg('Hmm, I had trouble connecting! Check your internet and try again. 🌐');
-    setMood('idle');
-  }
-
-  APP.waiting = false;
-  document.getElementById('send-btn').disabled = false;
-}
-
 function logConversation(q, a) {
   const u = APP.currentUser;
   if (!u) return;
@@ -2511,13 +2479,6 @@ function clearChat() {
 // ==============================
 // COSMO REACTIONS
 // ==============================
-function cosmoReact() {
-  const av = document.getElementById('cosmo-av');
-  av.classList.remove('bounce-anim');
-  void av.offsetWidth;
-  av.classList.add('bounce-anim');
-}
-
 function setMood(mood) {
   const pool = MOODS[mood] || MOODS.idle;
   document.getElementById('cosmo-status').textContent = pool[Math.floor(Math.random()*pool.length)];
@@ -3237,7 +3198,7 @@ function confetti() {
 
 // ⚠️  Replace with your real Stripe publishable key from https://dashboard.stripe.com/apikeys
 // Test key starts with: pk_test_51...   Live key: pk_live_51...
-const STRIPE_PUBLISHABLE_KEY = 'pk_test_51TCxxh4c8W1NT6nlwDXof2f6qHV3p3WqUcCSKfH8Hd5kxSwnbsOp96OUBjqBDQWVyGRSLNwJfBXUarqRcD4a3Ksl002vgNQ4uJ';
+const STRIPE_PUBLISHABLE_KEY = 'pk_test_YOUR_STRIPE_PUBLISHABLE_KEY';
 
 // ⚠️  Anthropic API key — injected at build time by inject-config.js
 // For local testing, paste your key here temporarily (never commit it)
@@ -3822,9 +3783,10 @@ async function sendMsg() {
     removeTyping();
     addBotMsg('Hmm, connection trouble! Try again. 🌐');
     setMood('idle');
+  } finally {
+    APP.waiting = false;
+    document.getElementById('send-btn').disabled = false;
   }
-  APP.waiting = false;
-  document.getElementById('send-btn').disabled = false;
 }
 
 // Patch plan CTA buttons to open payment for logged-in users
@@ -4230,10 +4192,13 @@ function stopWaveform() {
 // ── Patch cosmoReact to add a chirp sound feel (visual only here) ────────────
 const _origCosmoReact = cosmoReact;
 function cosmoReact() {
-  _origCosmoReact();
+  const av = document.getElementById('cosmo-av');
+  if (!av) return;
+  av.classList.remove('bounce-anim');
+  void av.offsetWidth;
+  av.classList.add('bounce-anim');
   // If speaking, briefly intensify the avatar glow
-  if (APP.voice.speaking) {
-    const av = document.getElementById('cosmo-av');
+  if (APP.voice && APP.voice.speaking) {
     av.style.filter = 'brightness(1.15)';
     setTimeout(() => av.style.filter = '', 300);
   }
